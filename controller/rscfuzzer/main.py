@@ -4,6 +4,7 @@ import argparse
 import logging
 import yaml
 import sys
+from rscfuzzer.fuzzer import Fuzzer
 
 log = logging.getLogger(__name__)
 
@@ -14,15 +15,15 @@ def load_yaml_file(yaml_file):
         with open(yaml_file, 'r') as stream:
             config = yaml.safe_load(stream)
     except IOError as err:
-        print(f"Unable to open yaml file {yaml_file}: {err}")
-        sys.exit()
+        sys.exit(f"Unable to open yaml file {yaml_file}: {err}")
     except yaml.YAMLError as err:
-        print(f"Unable to load yaml file {yaml_file}: {err}")
+        sys.exit(f"Unable to load yaml file {yaml_file}: {err}")
     else:
         return config
 
 
 def parse_cmd():
+    global log
     """ Parse command line arguments using argparse """
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -56,8 +57,11 @@ def parse_cmd():
     file_handler.setLevel(logging.DEBUG)  # log everything to the file
     file_handler.setFormatter(formatter)
 
-    log.addHandler(file_handler)
-    log.addHandler(stream_handler)
+    logging.basicConfig(handlers=[file_handler, stream_handler])
+
+    # create and run the fuzzer
+    sc_fuzzer = Fuzzer(config, args.target)
+    sc_fuzzer.run()
 
 
 def main():
