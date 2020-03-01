@@ -1,15 +1,12 @@
 import paramiko
 import logging
+import warnings
+
+# suppress warning and logs for paramiko
+warnings.filterwarnings(action='ignore',module='.*paramiko.*')
+logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 log = logging.getLogger(__name__)
-
-targets = {
-    "openssh": {"command": "/home/gavin/openssh/sshd -f /home/gavin/ssh_trace/sshd_config -D -d",
-                "server": True,
-                "poll": "select",
-                "clients": [],
-                }
-}
 
 
 # client functions
@@ -25,3 +22,20 @@ def openssh_simple_client():
         return -1
     else:
         return 0
+
+
+targets = {
+    "openssh": {"command": "/home/gavin/openssh/sshd -f /home/gavin/ssh_trace/sshd_config -D -d",
+                "server": True,
+                "poll": "select",
+                "clients": [openssh_simple_client],
+                "sudo": True,
+                "retcode": 255,
+                "env": {"test1": "var1", "test2": "var2"},
+                "strace_log": "openssh_strace_log.txt",
+                "cwd": None,
+                "input": None,
+                "timeout": 5,
+                "setup_func": None,
+                }
+}

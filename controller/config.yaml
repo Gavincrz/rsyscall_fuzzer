@@ -1,2 +1,7 @@
 log_file: log.txt
-strace_dir: '/home/gavin/strace'
+strace_dir: /home/gavin/strace
+strace_log: strace_log.txt
+syscall_config: syscall.json
+record_file: record.txt
+num_iteration: 20
+core_dir: cores

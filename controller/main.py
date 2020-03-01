@@ -4,9 +4,19 @@ import argparse
 import logging
 import yaml
 import sys
+import signal
 from rscfuzzer.fuzzer import Fuzzer
 
 log = logging.getLogger(__name__)
+sc_fuzzer = None
+
+
+def signal_handler(sig, frame):
+    global sc_fuzzer
+    print('You pressed Ctrl+C, kill running servers')
+    if sc_fuzzer:
+        sc_fuzzer.kill_servers()
+    sys.exit(0)
 
 
 def load_yaml_file(yaml_file):
@@ -23,7 +33,7 @@ def load_yaml_file(yaml_file):
 
 
 def parse_cmd():
-    global log
+    global log, sc_fuzzer
     """ Parse command line arguments using argparse """
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -57,7 +67,7 @@ def parse_cmd():
     file_handler.setLevel(logging.DEBUG)  # log everything to the file
     file_handler.setFormatter(formatter)
 
-    logging.basicConfig(handlers=[file_handler, stream_handler])
+    logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, stream_handler])
 
     # create and run the fuzzer
     sc_fuzzer = Fuzzer(config, args.target)
@@ -65,6 +75,7 @@ def parse_cmd():
 
 
 def main():
+    signal.signal(signal.SIGINT, signal_handler)
     parse_cmd()
 
 
