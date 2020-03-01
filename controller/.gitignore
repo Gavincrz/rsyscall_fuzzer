@@ -6,3 +6,7 @@ __pycache__
 # log files
 log.txt
 record.txt
+cores/
+stored_cores/
+core
+*log.txt

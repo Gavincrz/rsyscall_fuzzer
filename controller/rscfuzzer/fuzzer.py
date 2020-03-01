@@ -7,15 +7,16 @@ import subprocess
 import rscfuzzer.const as const
 import time
 import stat
-import pwd
-import grp
+import hashlib
+import shutil
+
 from rscfuzzer.target import targets
 
 log = logging.getLogger(__name__)
 
 
 class Fuzzer:
-    def __init__(self, config, target_name):
+    def __init__(self, config, target_name, start_skip=0):
         self.config = config
 
         # check if it is a valid target
@@ -54,21 +55,21 @@ class Fuzzer:
         self.setup_env_var()
 
         # check strace log file, target config has high priority
-        strace_log = self.target.get("strace_log", None)
-        if strace_log is None:
-            strace_log = self.config.get("strace_log", None)
-        if strace_log is None:
+        self.strace_log = self.target.get("strace_log", None)
+        if self.strace_log is None:
+            self.strace_log = self.config.get("strace_log", None)
+        if self.strace_log is None:
             sys.exit("no strace log path set")
         try:
-            self.strace_log_fd = open(strace_log, "w+")
+            self.strace_log_fd = open(self.strace_log, "w+")
         except IOError as e:
-            sys.exit(f"unable to open strace_log file: {strace_log}: {e}")
+            sys.exit(f"unable to open strace_log file: {self.strace_log}: {e}")
         else:
-            log.info(f"strace log will saved to {strace_log}")
+            log.info(f"strace log will saved to {self.strace_log}")
         try:
-            os.chmod(strace_log, stat.S_IWOTH | stat.S_IROTH)
+            os.chmod(self.strace_log, stat.S_IWOTH | stat.S_IROTH)
         except IOError as e:
-            log.info(f"Unable to change permission of strace log file: {strace_log}: {e}")
+            log.info(f"Unable to change permission of strace log file: {self.strace_log}: {e}")
 
         # check if target need to be run in specific directory
         self.target_cwd = self.target.get("cwd", None)
@@ -95,9 +96,22 @@ class Fuzzer:
         self.setup_func = self.target.get("setup_func", None)
 
         self.core_dir = self.config.get("core_dir", "cores")
-        self.binary = self.command.split("/")[-1]
+        self.store_core_dir = self.config.get("store_core_dir", "stored_cores")
+        self.binary = self.command.split(' ')[0].split('/')[-1]
         self.core_dir = os.path.join(self.core_dir, self.binary)
-        log.info(f"core dump will be stored in {self.core_dir}")
+        self.store_core_dir = os.path.join(self.store_core_dir, self.binary)
+
+        log.info(f"core dump will be stored in {self.core_dir}, and moved to {self.store_core_dir}")
+
+        # mkdir if necessary
+        if not os.path.exists(self.store_core_dir):
+            os.makedirs(self.store_core_dir, mode=0o777)
+
+        self.poll_time = self.target.get("poll_time", 3)
+        self.gdb_p = None
+        self.stack_set = set()
+
+        self.start_skip = start_skip
 
     def setup_env_var(self):
         env_dict = self.target.get("env")
@@ -107,7 +121,16 @@ class Fuzzer:
 
     def clear_cores(self):
         for f in os.listdir(self.core_dir):
-            os.remove(os.path.join(self.core_dir, f))
+            try:
+                os.remove(os.path.join(self.core_dir, f))
+            except:
+                pass
+
+    def clear_record(self):
+        os.remove(self.record_file)
+
+    def clear_strace_log(self):
+        self.strace_log_fd.truncate(0)
 
     def kill_servers(self):
         """ kill all running server to avoid port unavaliable """
@@ -116,6 +139,72 @@ class Fuzzer:
                 os.killpg(os.getpgid(self.srv_p.pid), signal.SIGKILL)
             except ProcessLookupError:
                 self.srv_p = None
+
+    def kill_gdb(self):
+        if self.gdb_p:
+            self.gdb_p.kill()
+
+    def handle_core_dump(self):
+        core_list = []
+        for f in os.listdir(self.core_dir):
+            if 'core.' in f:
+                core_list.append(os.path.join(self.core_dir, f))
+        for file in core_list:
+            self.kill_gdb()
+            self.gdb_p = subprocess.Popen(
+                ["gdb", "-q", self.command.split(' ')[0]],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                close_fds=True,
+                env=self.target_env,
+            )
+
+            self.gdb_p.stdin.write(("core-file " + file).encode("utf-8") + b"\n")
+            self.gdb_p.stdin.flush()
+
+            while True:
+                data = self.gdb_p.stdout.readline().decode("utf-8")
+                if const.top_stack_pattern.match(data):
+                    break
+                if const.not_found_pattern.match(data):
+                    self.kill_gdb()
+                    return
+
+            self.gdb_p.stdin.write("bt".encode("utf-8") + b"\n")
+            self.gdb_p.stdin.flush()
+            self.gdb_p.stdin.write("p".encode("utf-8") + b"\n")
+            self.gdb_p.stdin.flush()
+
+            stack_string = ''
+            while True:
+                data = self.gdb_p.stdout.readline().decode("utf-8")
+                if " at " in data:
+                    stack_string += data.split(' at ')[-1]
+                if const.empty_history_pattern.match(data):
+                    break
+            self.kill_gdb()
+            # hash the string use sha1 to save memory
+            hash_object = hashlib.sha1(stack_string.encode())
+            hash_str = hash_object.hexdigest()
+
+            if hash_str not in self.stack_set:
+                self.stack_set.add(hash_str)
+                log.info(f"new stack found: {stack_string}")
+                # store the core with records
+                dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
+                shutil.copy(file, dst)
+                log.info(f"core file stored to {dst}")
+                # copy the record file as well
+                dst = os.path.join(self.store_core_dir, f"record.{hash_str}.txt")
+                shutil.copy(self.record_file, dst)
+                log.info(f"record file stored to {dst}")
+                # copy strace log as well
+                dst = os.path.join(self.store_core_dir, f"strace.{hash_str}.txt")
+                shutil.copy(self.strace_log, dst)
+                log.info(f"strace file stored to {dst}")
+
+        return len(core_list)
 
     def run(self):
         # test the application or part before polling in a server
@@ -136,7 +225,7 @@ class Fuzzer:
         if ret == 0:
             log.info(f"vanilla run success, before_poll = {before_poll}")
         # run the test version
-        # self.run_interceptor_fuzz(before_poll, client)
+        self.run_interceptor_fuzz(before_poll, client)
 
     def run_interceptor_vanilla(self, before_poll=True, client=None):
         # construct the strace command
@@ -174,7 +263,7 @@ class Fuzzer:
             # ignore signal
             signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
             # Wait for sigmax-7, or acknowledge if it is already pending
-            ret = signal.sigtimedwait([const.ACCEPT_SIG], 2)  # wait until server reach accept
+            ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
             signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
             if ret:
                 logging.debug(f"sig {const.ACCEPT_SIG} received!")
@@ -248,7 +337,7 @@ class Fuzzer:
         return 0
 
     def run_interceptor_fuzz(self, before_poll=True, client=None):
-        skip_count = 0
+        skip_count = self.start_skip
         should_increase = True
         while should_increase: # fuzzing loop, end until application terminate properly
             should_increase = False
@@ -260,8 +349,8 @@ class Fuzzer:
             if not before_poll and client is not None:
                 strace_cmd = f"{strace_cmd} -l"
 
-            # add skip count to the command '-B', add syscall config
-            strace_cmd = f"{strace_cmd} -B {skip_count} -K {os.path.abspath(self.syscall_config)}"
+            # add skip count to the command '-G -B', add syscall config, -G means start fuzzing
+            strace_cmd = f"{strace_cmd} -G -B {skip_count} -K {os.path.abspath(self.syscall_config)}"
 
             # add record file if setted
             if self.record_file is not None:
@@ -272,17 +361,21 @@ class Fuzzer:
             if self.sudo:
                 strace_cmd = f"sudo -E {strace_cmd}"
 
-            log.info(f"start fuzzing with command {strace_cmd}, num_iterations = {self.iteration}")
+            log.info(f"start fuzzing with command {strace_cmd}, "
+                     f"num_iterations = {self.iteration}, skip_count={skip_count}")
             args = shlex.split(strace_cmd)
             failed_iters = []
 
             for i in range(0, self.iteration):
                 # run the command multiple times
-
                 # clear core dumps
                 self.clear_cores()
+                self.clear_record()
+                self.clear_strace_log()
                 # make sure no server is running
                 self.kill_servers()
+                # initialize the retcode with a magic number
+                retcode = 10086
                 if self.setup_func is not None:
                     self.setup_func()
 
@@ -305,7 +398,7 @@ class Fuzzer:
                         # timeout, kill the program and record failure
                         self.kill_servers()
                         should_increase = True
-                        failed_iters.append((i, 'Timeout'))
+                        failed_iters.append((i, 'timeout_n'))
                     else:
                         if self.retcode != retcode:
                             self.kill_servers()
@@ -313,6 +406,65 @@ class Fuzzer:
                             failed_iters.append((i, retcode))
                             should_increase = True
                 else:  # handle servers
-                    pass
+                    # ignore signal
+                    signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
+                    # Wait for sigmax-7, or acknowledge if it is already pending
+                    # logging.debug("wait for server's signal ...")
+                    ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
+                    signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
+                    if ret is None:  # timeout
+                        failed_iters.append((i, 'timeout_p'))
+                        should_increase = True
+                        # check server state
+                        retcode = self.srv_p.poll()
+                        if retcode is not None:
+                            failed_iters.append((i, retcode))
+                        self.kill_servers()
+                    else:
+                        # check if this turn only test before poll:
+                        if before_poll:
+                            # check if the server crashes,
+                            ret = self.srv_p.poll()
+                            if ret is None:  # terminate the server and return
+                                os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                self.srv_p.wait()  # wait until strace properly save the output
+                            # server terminate before client, report error
+                            else:
+                                self.kill_servers()
+                                failed_iters.append((i, 'exit_b'))
+                                should_increase = True
+                        else:  # after polling, connect a client
+                            time.sleep(const.CLIENT_DELAY)
+                            client_ret = client()
+                            if client_ret != 0:
+                                self.kill_servers()
+                                failed_iters.append((i, 'client_f'))
+                                should_increase = True
+                            else:  # client success, check state of server
+                                try:  # wait for server to terminate after client
+                                    retcode = self.srv_p.wait(timeout=self.timeout)
+                                except TimeoutError:
+                                    self.kill_servers()
+                                    if self.retcode is not None:  # should exit
+                                        failed_iters.append((i, 'timeout_a'))
+                                        should_increase = True
+                                else:
+                                    if retcode != self.retcode:  # check if retcode match
+                                        self.kill_servers()
+                                        failed_iters.append((i, retcode))
+                                        should_increase = True
 
                 # handle core dumped
+                core_ret = self.handle_core_dump()
+                if core_ret > 0:
+                    self.kill_servers()
+                    failed_iters.append((i, 'core'))
+                    should_increase = True
+                # for iteration, code in failed_iters:
+                #     if iteration == i:
+                #         log.info(f"{iteration}: {code}")
+
+            # output list if necessary
+            log.debug(failed_iters)
+            if should_increase:
+                skip_count = skip_count+1

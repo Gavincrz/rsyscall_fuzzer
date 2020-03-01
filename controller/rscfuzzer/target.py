@@ -37,5 +37,7 @@ targets = {
                 "input": None,
                 "timeout": 5,
                 "setup_func": None,
+                "poll_time": 3,
+
                 }
 }

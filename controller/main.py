@@ -16,6 +16,7 @@ def signal_handler(sig, frame):
     print('You pressed Ctrl+C, kill running servers')
     if sc_fuzzer:
         sc_fuzzer.kill_servers()
+        sc_fuzzer.kill_gdb()
     sys.exit(0)
 
 
@@ -51,6 +52,7 @@ def parse_cmd():
                         help="Set config file", default='config.yaml')
     parser.add_argument('target',
                         help="target program to fuzz")
+    parser.add_argument("-s", "--skip", type=int, dest="skip", default=0, help="starting skip count")
 
     args = parser.parse_args()
     config = load_yaml_file(args.config)
@@ -70,7 +72,7 @@ def parse_cmd():
     logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, stream_handler])
 
     # create and run the fuzzer
-    sc_fuzzer = Fuzzer(config, args.target)
+    sc_fuzzer = Fuzzer(config, args.target, args.skip)
     sc_fuzzer.run()
 
 
