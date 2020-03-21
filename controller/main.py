@@ -5,7 +5,7 @@ import logging
 import yaml
 import sys
 import signal
-import rscfuzzer.target as targets
+from rscfuzzer.target import targets
 from rscfuzzer.fuzzer import Fuzzer
 
 log = logging.getLogger(__name__)
