@@ -82,7 +82,8 @@ def parse_cmd():
         target = targets[args.target]
         clients = target.get("clients")
         if clients is not None and len(clients) > 0:
-            clients[0]()
+            ret = clients[0]()
+            print(ret)
         exit()
     # create and run the fuzzer
     sc_fuzzer = Fuzzer(config, args.target, args.skip)
