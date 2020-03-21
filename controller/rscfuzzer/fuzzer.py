@@ -99,13 +99,26 @@ class Fuzzer:
         self.store_core_dir = self.config.get("store_core_dir", "stored_cores")
         self.binary = self.command.split(' ')[0].split('/')[-1]
         self.core_dir = os.path.join(self.core_dir, self.binary)
-        self.store_core_dir = os.path.join(self.store_core_dir, self.binary)
+
+        # mkdir if necessary
+        if not os.path.exists(self.core_dir):
+            os.makedirs(self.core_dir, mode=0o777)
+            os.chmod(self.core_dir, mode=0o777)
+        # modify core_dump file
+        core_command = f"sudo sysctl -w kernel.core_pattern={os.path.abspath(self.core_dir)}/core.%p"
+        args = shlex.split(core_command)
+        p = subprocess.Popen(args)
+        p.wait()
+        log.warn(f"core pattern command to {core_command}")
+
+        self.store_core_dir = os.path.join(self.store_core_dir, self.target_name)
 
         log.info(f"core dump will be stored in {self.core_dir}, and moved to {self.store_core_dir}")
 
         # mkdir if necessary
         if not os.path.exists(self.store_core_dir):
             os.makedirs(self.store_core_dir, mode=0o777)
+            os.chmod(self.store_core_dir, mode=0o777)
 
         self.poll_time = self.target.get("poll_time", 3)
         self.gdb_p = None
@@ -113,24 +126,61 @@ class Fuzzer:
 
         self.start_skip = start_skip
 
+        self.cov = self.target.get("cov", False)
+        self.cov_cwd = self.target.get("cov_cwd", None)
+        if self.cov and self.cov_cwd is None:
+            sys.exit(f"cov_cwd not set for cov target: {self.target_name}")
+
+        self.fuzz_valid = self.target.get("fuzz_valid", False)
+
     def setup_env_var(self):
         env_dict = self.target.get("env")
-        for key, value in env_dict.items():
-            self.target_env[key] = value
-            log.debug(f"env var: {key} -> {value}")
+        if env_dict is not None:
+            for key, value in env_dict.items():
+                self.target_env[key] = value
+                log.debug(f"env var: {key} -> {value}")
 
     def clear_cores(self):
+        if not os.path.exists(self.core_dir):
+            os.makedirs(self.core_dir, mode=0o777)
+            os.chmod(self.core_dir, mode=0o777)
         for f in os.listdir(self.core_dir):
             try:
                 os.remove(os.path.join(self.core_dir, f))
             except:
                 pass
 
+    def clear_cov(self):
+        if self.cov:
+            clear_cmd = "find . -name '*.gcda' -type f -delete"
+            args = shlex.split(clear_cmd)
+            p = subprocess.Popen(args, cwd=self.cov_cwd)
+            p.wait()
+
+    def store_cov_info(self, name):
+        if self.cov:
+            store_cmd = f"lcov -c --directory=./ -o {name}.info"
+            args = shlex.split(store_cmd)
+            p = subprocess.Popen(args, cwd=self.cov_cwd)
+            p.wait()
+            log.info(f"cov info stored to {name}.info")
+
+    def merge_cov_info(self, name1, name2, output):
+        if self.cov:
+            store_cmd = f"lcov -a {name1}.info -a {name2}.info -o {output}.info"
+            args = shlex.split(store_cmd)
+            p = subprocess.Popen(args, cwd=self.cov_cwd)
+            p.wait()
+
     def clear_record(self):
-        os.remove(self.record_file)
+        try:
+            os.remove(self.record_file)
+        except FileNotFoundError:
+            pass
 
     def clear_strace_log(self):
         self.strace_log_fd.truncate(0)
+        self.strace_log_fd.seek(0, 0)
 
     def kill_servers(self):
         """ kill all running server to avoid port unavaliable """
@@ -206,7 +256,44 @@ class Fuzzer:
 
         return len(core_list)
 
+    def run_cov(self):
+        log.info(f"running cov test")
+        self.clear_cov()
+        # run the vanilla version first before poll
+        ret = self.run_interceptor_vanilla(True, None)
+        ret = self.run_interceptor_vanilla(True, None)
+        ret = self.run_interceptor_vanilla(True, None)
+        if ret == 0:
+            log.info(f"vanilla cov run success, before_poll = true")
+        # run the vanilla version with clients if possible
+        if self.server:
+            if "clients" not in self.target:
+                log.error(f"No client defiend for target {self.target_name}")
+                return
+            # test the part after polling separately for each client
+            for client in self.target.get("clients"):
+                ret = self.run_interceptor_vanilla(False, client)
+                ret = self.run_interceptor_vanilla(False, client)
+                ret = self.run_interceptor_vanilla(False, client)
+                if ret == 0:
+                    log.info(f"vanilla cov run success, before_poll = false")
+        # store the cov file for vanilla runs
+        self.store_cov_info("vanilla")
+        self.clear_cov()
+
+        # run the test
+        self.run_interceptor_fuzz(True, None)
+        for client in self.target.get("clients"):
+            self.run_interceptor_fuzz(False, client)
+
+        # store the cov file for fuzz
+        self.store_cov_info("fuzz")
+        self.clear_cov()
+
     def run(self):
+        if self.cov:
+            self.run_cov()
+            return
         # test the application or part before polling in a server
         self.test_target(True)
 
@@ -301,7 +388,7 @@ class Fuzzer:
                     # wait for server to terminate
                     try:
                         retcode = self.srv_p.wait(timeout=self.timeout)  # wait for server to terminate after client
-                    except TimeoutError:
+                    except (TimeoutError, subprocess.TimeoutExpired):
                         self.kill_servers()
                         sys.exit("server timeout after client (should terminate), kill the server")
                     else:
@@ -356,6 +443,12 @@ class Fuzzer:
             if self.record_file is not None:
                 strace_cmd = f"{strace_cmd} -L {os.path.abspath(self.record_file)}"
 
+            # if test cov -m: only fuzz with valid value -M: cov support, not fuzz cov syscall
+            if self.cov:
+                strace_cmd = f"{strace_cmd} -M"
+            if self.fuzz_valid:
+                strace_cmd = f"{strace_cmd} -m"
+
             strace_cmd = f"{strace_cmd} {self.command}"
 
             if self.sudo:
@@ -379,6 +472,7 @@ class Fuzzer:
                 if self.setup_func is not None:
                     self.setup_func()
 
+                signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
                 # Block signal until sigwait (if caught, it will become pending)
                 signal.pthread_sigmask(signal.SIG_BLOCK, [const.ACCEPT_SIG])
 
@@ -406,53 +500,61 @@ class Fuzzer:
                             failed_iters.append((i, retcode))
                             should_increase = True
                 else:  # handle servers
-                    # ignore signal
-                    signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
-                    # Wait for sigmax-7, or acknowledge if it is already pending
-                    # logging.debug("wait for server's signal ...")
-                    ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
-                    signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
-                    if ret is None:  # timeout
-                        failed_iters.append((i, 'timeout_p'))
+                    # check if server exist before wait for signal (save time)
+                    time.sleep(0.5)
+                    retcode = self.srv_p.poll()
+                    if retcode is not None:
+                        failed_iters.append((i, retcode))
                         should_increase = True
-                        # check server state
-                        retcode = self.srv_p.poll()
-                        if retcode is not None:
-                            failed_iters.append((i, retcode))
-                        self.kill_servers()
                     else:
-                        # check if this turn only test before poll:
-                        if before_poll:
-                            # check if the server crashes,
-                            ret = self.srv_p.poll()
-                            if ret is None:  # terminate the server and return
-                                os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
-                                self.srv_p.wait()  # wait until strace properly save the output
-                            # server terminate before client, report error
-                            else:
-                                self.kill_servers()
-                                failed_iters.append((i, 'exit_b'))
-                                should_increase = True
-                        else:  # after polling, connect a client
-                            time.sleep(const.CLIENT_DELAY)
-                            client_ret = client()
-                            if client_ret != 0:
-                                self.kill_servers()
-                                failed_iters.append((i, 'client_f'))
-                                should_increase = True
-                            else:  # client success, check state of server
-                                try:  # wait for server to terminate after client
-                                    retcode = self.srv_p.wait(timeout=self.timeout)
-                                except TimeoutError:
-                                    self.kill_servers()
-                                    if self.retcode is not None:  # should exit
-                                        failed_iters.append((i, 'timeout_a'))
-                                        should_increase = True
+                        # ignore signal
+                        # Wait for sigmax-7, or acknowledge if it is already pending
+                        # logging.debug("wait for server's signal ...")
+                        ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
+                        signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
+                        if ret is None:  # timeout
+                            failed_iters.append((i, 'timeout_p'))
+                            should_increase = True
+                            # check server state
+                            retcode = self.srv_p.poll()
+                            if retcode is not None:
+                                failed_iters.append((i, retcode))
+                            self.kill_servers()
+                        else:
+                            # check if this turn only test before poll:
+                            if before_poll:
+                                # check if the server crashes,
+                                ret = self.srv_p.poll()
+                                if ret is None:  # terminate the server and return
+                                    os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                    self.srv_p.wait()  # wait until strace properly save the output
+                                # server terminate before client, report error
                                 else:
-                                    if retcode != self.retcode:  # check if retcode match
-                                        self.kill_servers()
-                                        failed_iters.append((i, retcode))
-                                        should_increase = True
+                                    self.kill_servers()
+                                    failed_iters.append((i, 'exit_b'))
+                                    should_increase = True
+                            else:  # after polling, connect a client
+                                time.sleep(const.CLIENT_DELAY)
+                                client_ret = client()
+                                if client_ret != 0:
+                                    os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                    self.srv_p.wait()  # wait until strace properly save the output
+                                    failed_iters.append((i, 'client_f'))
+                                    should_increase = True
+                                else:  # client success, check state of server
+                                    try:  # wait for server to terminate after client
+                                        retcode = self.srv_p.wait(timeout=self.timeout)
+                                    except (TimeoutError, subprocess.TimeoutExpired):
+                                        os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                        self.srv_p.wait()  # wait until cov properly save the output
+                                        if self.retcode is not None:  # should exit
+                                            failed_iters.append((i, 'timeout_a'))
+                                            should_increase = True
+                                    else:
+                                        if retcode != self.retcode:  # check if retcode match
+                                            self.kill_servers()
+                                            failed_iters.append((i, retcode))
+                                            should_increase = True
 
                 # handle core dumped
                 core_ret = self.handle_core_dump()

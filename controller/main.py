@@ -5,6 +5,7 @@ import logging
 import yaml
 import sys
 import signal
+import rscfuzzer.target as target
 from rscfuzzer.fuzzer import Fuzzer
 
 log = logging.getLogger(__name__)
@@ -54,6 +55,12 @@ def parse_cmd():
                         help="target program to fuzz")
     parser.add_argument("-s", "--skip", type=int, dest="skip", default=0, help="starting skip count")
 
+    parser.add_argument(
+        "-t",
+        help="secret test option",
+        action="store_const", dest="test", const=True, default=False,
+    )
+
     args = parser.parse_args()
     config = load_yaml_file(args.config)
 
@@ -71,6 +78,9 @@ def parse_cmd():
 
     logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, stream_handler])
 
+    if args.test:
+        target.openssh_simple_client()
+        exit()
     # create and run the fuzzer
     sc_fuzzer = Fuzzer(config, args.target, args.skip)
     sc_fuzzer.run()

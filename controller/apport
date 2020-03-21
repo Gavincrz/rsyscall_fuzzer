@@ -553,6 +553,9 @@ try:
         core_ulimit = -1
 
     if dump_mode == '2':
+        info = apport.Report('Crash')
+        mybase = info['ExecutablePath'].split('/')[-1]
+        error_log('dump mode 2 base: ' + mybase)
         error_log('not creating core for pid with dump mode of %s' % (dump_mode))
         # a report should be created but not a core file
         core_ulimit = 0
@@ -618,9 +621,10 @@ try:
                   (info['ExecutablePath'], info['ProcCmdline']))
 
     # write core dump no matter what
-    base = info['ExecutablePath'].split('/')[-1]
-    if not base == 'strace':
-        core_dir = os.path.join('/home/gavin/rsyscall_fuzzer/controller/cores', base)
+    mybase = info['ExecutablePath'].split('/')[-1]
+    error_log('base: ' + mybase)
+    if not mybase == 'strace':
+        core_dir = os.path.join('/home/gavin/rsyscall_fuzzer/controller/cores', mybase)
         if not os.path.exists(core_dir):
             os.makedirs(core_dir)
         store_path = os.path.join(core_dir, 'core.' + str(pid))

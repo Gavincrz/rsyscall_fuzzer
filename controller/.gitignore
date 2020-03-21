@@ -10,3 +10,5 @@ cores/
 stored_cores/
 core
 *log.txt
+*strace.txt
+*.info
