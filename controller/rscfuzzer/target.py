@@ -104,7 +104,7 @@ targets = {
          "sc_cov": True,
          "hash_file": "syscov_openssh.txt",
          "cov_cwd": "/home/gavin/openssh_cov/",
-         "fuzz_valid": False,
+         "fuzz_valid": True,
          },
     "cov_test":
         {"command": "/home/gavin/simpletest/cov-test/test",
