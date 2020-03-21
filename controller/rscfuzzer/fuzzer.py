@@ -183,16 +183,18 @@ class Fuzzer:
             if not vanilla:
                 dict = self.fuzz_cov
             for line in lines:
-                syscall = line.split(': ')[0]
-                hash = int(line.split(': ')[-1])
+                temp = line.split(': ')
+                syscall = temp[0]
+                hash = int(temp[1])
+                stack = temp[2].replace('%', '\n')
                 pair = dict.get(hash)
                 if pair is None:
                     if not vanilla:
-                        log.info(f'new syscall found: ({hash}, {syscall})')
-                        print(f'new syscall found: ({hash}, {syscall})')
-                    dict[hash] = (syscall, 1)
+                        log.info(f'new syscall found: ({hash}, {syscall}): {stack}')
+                        print(f'new syscall found: ({hash}, {syscall}): {stack}')
+                    dict[hash] = (syscall, 1, stack)
                 else:
-                    dict[hash] = (syscall, pair[1]+1)
+                    dict[hash] = (syscall, pair[1]+1, stack)
 
     def clear_cov(self):
         if self.cov:
@@ -377,7 +379,7 @@ class Fuzzer:
             if key not in self.vanila_cov.keys():
                 new_count += 1
         log.warning(f"newly added system calls: {new_count}/{len(self.vanila_cov)}, "
-              f"{float(new_count)/float(len(self.vanila_cov)) * 100.0}%")
+                    f"{float(new_count)/float(len(self.vanila_cov)) * 100.0}%")
 
     def run(self):
         if self.cov:
