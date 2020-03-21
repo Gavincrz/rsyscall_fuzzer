@@ -12,3 +12,4 @@ core
 *log.txt
 *strace.txt
 *.info
+syscov*

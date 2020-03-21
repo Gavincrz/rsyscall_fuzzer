@@ -131,7 +131,14 @@ class Fuzzer:
         if self.cov and self.cov_cwd is None:
             sys.exit(f"cov_cwd not set for cov target: {self.target_name}")
 
+        self.sc_cov = self.target.get("sc_cov", False)
+        self.hash_file = self.target.get("hash_file", None)
+        if self.sc_cov and self.hash_file is None:
+            sys.exit(f"hash_file not set for sc_cov target: {self.target_name}")
         self.fuzz_valid = self.target.get("fuzz_valid", False)
+
+        self.vanila_cov = {}
+        self.fuzz_cov = {}
 
     def setup_env_var(self):
         env_dict = self.target.get("env")
@@ -149,6 +156,29 @@ class Fuzzer:
                 os.remove(os.path.join(self.core_dir, f))
             except:
                 pass
+
+    def clear_hash(self):
+        if self.sc_cov:
+            try:
+                os.remove(self.hash_file)
+            except:
+                pass
+
+    def parse_hash(self, vanilla=True):
+        with open(self.hash_file) as fp:
+            lines = fp.readlines()
+            dict = self.vanila_cov
+            if not vanilla:
+                dict = self.fuzz_cov
+            for line in lines:
+                syscall = line.split(': ')[0]
+                hash = int(line.split(': ')[-1])
+                pair = dict.get(hash)
+                if pair is None:
+                    dict.update({hash, (syscall, 1)})
+                else:
+                    pair[1] += 1
+                    dict.update({hash, pair})
 
     def clear_cov(self):
         if self.cov:
@@ -290,10 +320,25 @@ class Fuzzer:
         self.store_cov_info("fuzz")
         self.clear_cov()
 
+    def run_sc_cov(self):
+        log.info(f"running sc cov test")
+        self.clear_hash()
+        # run the vanilla version first before poll
+        ret = self.run_interceptor_vanilla(True, None)
+        self.parse_hash()
+        for key, value in self.vanila_cov:
+            print(key, value)
+
+
     def run(self):
         if self.cov:
             self.run_cov()
             return
+
+        if self.sc_cov:
+            self.run_sc_cov()
+            return
+
         # test the application or part before polling in a server
         self.test_target(True)
 
@@ -324,6 +369,9 @@ class Fuzzer:
         # unnecessary for vanilla run
         # if not before_poll and client is not None:
         #     strace_cmd = f"{strace_cmd} -l"
+
+        if self.sc_cov:
+            strace_cmd = f"{strace_cmd} -n {self.hash_file}"
 
         strace_cmd = f"{strace_cmd} {self.command}"
 
@@ -448,6 +496,9 @@ class Fuzzer:
                 strace_cmd = f"{strace_cmd} -M"
             if self.fuzz_valid:
                 strace_cmd = f"{strace_cmd} -m"
+
+            if self.sc_cov:
+                strace_cmd = f"{strace_cmd} -n {self.hash_file}"
 
             strace_cmd = f"{strace_cmd} {self.command}"
 
