@@ -187,6 +187,9 @@ class Fuzzer:
                 hash = int(line.split(': ')[-1])
                 pair = dict.get(hash)
                 if pair is None:
+                    if not vanilla:
+                        log.info(f'new syscall found: ({hash}, {syscall})')
+                        print(f'new syscall found: ({hash}, {syscall})')
                     dict[hash] = (syscall, 1)
                 else:
                     dict[hash] = (syscall, pair[1]+1)
@@ -363,12 +366,18 @@ class Fuzzer:
         print(f"usupported set: {unsupported_set}")
 
         # run the test
+        # copy the vanilla_cov to fuzz_cov
+        self.fuzz_cov = self.vanila_cov.copy()
         self.run_interceptor_fuzz(True, None)
         for client in self.target.get("clients"):
             self.run_interceptor_fuzz(False, client)
 
-
-
+        new_count = 0
+        for key, value in self.fuzz_cov.items():
+            if key not in self.vanila_cov.keys():
+                new_count += 1
+        log.warning(f"newly added system calls: {new_count}/{len(self.vanila_cov)}, "
+              f"{float(new_count)/float(len(self.vanila_cov)) * 100.0}%")
 
     def run(self):
         if self.cov:
