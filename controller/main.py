@@ -5,6 +5,7 @@ import logging
 import yaml
 import sys
 import signal
+import os
 from rscfuzzer.target import targets
 from rscfuzzer.fuzzer import Fuzzer
 
@@ -69,6 +70,7 @@ def parse_cmd():
         '[%(levelname)s] %(asctime)s (%(process)d:%(threadName)s) '
         '%(filename)s:%(funcName)s:%(lineno)s - %(message)s')
 
+    os.remove(config['log_file'])
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(args.loglevel)
     stream_handler.setFormatter(formatter)

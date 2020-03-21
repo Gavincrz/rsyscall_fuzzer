@@ -9,6 +9,7 @@ import time
 import stat
 import hashlib
 import shutil
+import json
 
 from rscfuzzer.target import targets
 
@@ -140,6 +141,17 @@ class Fuzzer:
         self.vanila_cov = {}
         self.fuzz_cov = {}
 
+        json_dict = {}
+        with open(self.syscall_config) as f:
+            json_dict = json.load(f)
+
+        syscall_list = json_dict["syscalls"]
+        self.supported = []
+        for item in syscall_list:
+            self.supported.append(item["name"])
+        print("supported syscalls: ")
+        print(self.supported)
+
     def setup_env_var(self):
         env_dict = self.target.get("env")
         if env_dict is not None:
@@ -175,10 +187,9 @@ class Fuzzer:
                 hash = int(line.split(': ')[-1])
                 pair = dict.get(hash)
                 if pair is None:
-                    dict.update({hash, (syscall, 1)})
+                    dict[hash] = (syscall, 1)
                 else:
-                    pair[1] += 1
-                    dict.update({hash, pair})
+                    dict[hash] = (syscall, pair[1]+1)
 
     def clear_cov(self):
         if self.cov:
@@ -326,8 +337,37 @@ class Fuzzer:
         # run the vanilla version first before poll
         ret = self.run_interceptor_vanilla(True, None)
         self.parse_hash()
-        for key, value in self.vanila_cov:
-            print(key, value)
+        if ret == 0:
+            log.info(f"vanilla cov run success, before_poll = true")
+
+        if self.server:
+            if "clients" not in self.target:
+                log.error(f"No client defiend for target {self.target_name}")
+                return
+            # test the part after polling separately for each client
+            for client in self.target.get("clients"):
+                ret = self.run_interceptor_vanilla(False, client)
+                self.parse_hash()
+                if ret == 0:
+                    log.info(f"vanilla cov run success, before_poll = false")
+
+        unsupported_set = set()
+        support_count = 0
+        for key, value in self.vanila_cov.items():
+            if value[0] in self.supported:
+                support_count += 1
+            else:
+                unsupported_set.add(value[0])
+        print(f"support {support_count}/{len(self.vanila_cov)}, "
+              f"{float(support_count)/float(len(self.vanila_cov)) * 100.0}%")
+        print(f"usupported set: {unsupported_set}")
+
+        # run the test
+        self.run_interceptor_fuzz(True, None)
+        for client in self.target.get("clients"):
+            self.run_interceptor_fuzz(False, client)
+
+
 
 
     def run(self):
@@ -516,6 +556,7 @@ class Fuzzer:
                 self.clear_cores()
                 self.clear_record()
                 self.clear_strace_log()
+                self.clear_hash()
                 # make sure no server is running
                 self.kill_servers()
                 # initialize the retcode with a magic number
@@ -616,6 +657,7 @@ class Fuzzer:
                 # for iteration, code in failed_iters:
                 #     if iteration == i:
                 #         log.info(f"{iteration}: {code}")
+                self.parse_hash(False)
 
             # output list if necessary
             log.debug(failed_iters)
