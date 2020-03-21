@@ -87,7 +87,6 @@ def parse_cmd():
             print(ret)
         exit()
 
-    os.remove(config['log_file'])
     # create and run the fuzzer
     sc_fuzzer = Fuzzer(config, args.target, args.skip)
     sc_fuzzer.run()
