@@ -190,8 +190,8 @@ class Fuzzer:
                 pair = dict.get(hash)
                 if pair is None:
                     if not vanilla:
-                        log.info(f'new syscall found: ({hash}, {syscall}): {stack}')
-                        print(f'new syscall found: ({hash}, {syscall}): {stack}')
+                        log.info(f'new syscall found: ({hash}, {syscall}): \n {stack}')
+                        print(f'new syscall found: ({hash}, {syscall}): \n {stack}')
                     dict[hash] = (syscall, 1, stack)
                 else:
                     dict[hash] = (syscall, pair[1]+1, stack)

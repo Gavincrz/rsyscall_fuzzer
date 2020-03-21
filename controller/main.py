@@ -70,7 +70,6 @@ def parse_cmd():
         '[%(levelname)s] %(asctime)s (%(process)d:%(threadName)s) '
         '%(filename)s:%(funcName)s:%(lineno)s - %(message)s')
 
-    os.remove(config['log_file'])
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(args.loglevel)
     stream_handler.setFormatter(formatter)
@@ -87,6 +86,8 @@ def parse_cmd():
             ret = clients[0]()
             print(ret)
         exit()
+
+    os.remove(config['log_file'])
     # create and run the fuzzer
     sc_fuzzer = Fuzzer(config, args.target, args.skip)
     sc_fuzzer.run()
