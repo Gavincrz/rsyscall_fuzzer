@@ -3,6 +3,6 @@ strace_dir: /home/gavin/strace
 strace_log: strace_log.txt
 syscall_config: syscall.json
 record_file: record.txt
-num_iteration: 20
+num_iteration: 5
 core_dir: cores
 store_core_dir: stored_cores
