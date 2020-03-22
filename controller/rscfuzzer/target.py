@@ -15,12 +15,12 @@ def openssh_simple_client():
     try:
         ssh = paramiko.SSHClient()
         ssh.load_host_keys("/home/gavin/.ssh/known_hosts")
-        ssh.connect("localhost", port=8080, username="gavin")
+        ssh.connect("localhost", port=8080, username="gavin", timeout=5)
         ssh.exec_command("exit")
         ssh.close()
     except Exception as err:
         # log.error(f"{err}")
-        return -1
+        return -1  
     else:
         return 0
 
