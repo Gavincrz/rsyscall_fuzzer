@@ -211,11 +211,11 @@ class Fuzzer:
                 else:
                     dict[hash] = (syscall, pair[1]+1, stack)
         if vanilla:
-            file = open(hash_file_v, 'w+')
+            file = open(hash_file_v, 'wb+')
             pickle.dump(dict, file)
             file.close()
         else:
-            file = open(hash_file_f, 'w+')
+            file = open(hash_file_f, 'wb+')
             pickle.dump(dict, file)
             file.close()
 
