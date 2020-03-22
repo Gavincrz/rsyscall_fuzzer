@@ -144,16 +144,20 @@ class Fuzzer:
         self.vanila_cov = {}
         self.fuzz_cov = {}
 
-        if os.path.exists(hash_file_v):
-            file = open(hash_file_v, 'rb')
-            self.vanila_cov = pickle.load(file)
-            file.close()
+        if os.path.isfile(hash_file_v):
+            try:
+                file = open(hash_file_v, 'rb')
+                self.vanila_cov = pickle.load(file)
+                file.close()
+            except:
+                pass
 
-        if os.path.exists(hash_file_f):
-            file = open(hash_file_f, 'rb')
-            self.fuzz_cov = pickle.load(file)
-            file.close()
-
+        if os.path.isfile(hash_file_f):
+            try:
+                file = open(hash_file_f, 'rb')
+                self.fuzz_cov = pickle.load(file)
+                file.close()
+            except
 
         json_dict = {}
         with open(self.syscall_config) as f:
@@ -392,7 +396,7 @@ class Fuzzer:
 
         # run the test
         # copy the vanilla_cov to fuzz_cov
-        for key, value in self.vanila_cov:
+        for key, value in self.vanila_cov.items():
             if key not in self.fuzz_cov.keys():
                 self.fuzz_cov[key] = value
 
