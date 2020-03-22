@@ -176,7 +176,7 @@ class Fuzzer:
         if env_dict is not None:
             for key, value in env_dict.items():
                 self.target_env[key] = value
-                log.debug(f"env var: {key} -> {value}")
+                log.info(f"env var: {key} -> {value}")
 
     def clear_cores(self):
         if not os.path.exists(self.core_dir):
@@ -514,7 +514,7 @@ class Fuzzer:
                 self.kill_servers()
                 sys.exit("error: client failed during vanilla run!")
             else:
-                log.debug("client success during vanilla run!")
+                log.info("client success during vanilla run!")
                 # check if server terminated
                 if self.retcode is not None:
                     # wait for server to terminate
@@ -607,7 +607,7 @@ class Fuzzer:
                 retcode = 10086
                 if self.setup_func is not None:
                     self.setup_func()
-
+                log.debug(f"start iteration {i}")
                 signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
                 # Block signal until sigwait (if caught, it will become pending)
                 signal.pthread_sigmask(signal.SIG_BLOCK, [const.ACCEPT_SIG])
@@ -639,15 +639,17 @@ class Fuzzer:
                     # check if server exist before wait for signal (save time)
                     time.sleep(0.5)
                     retcode = self.srv_p.poll()
+                    log.debug("check server exist before wait for signal")
                     if retcode is not None:
                         failed_iters.append((i, retcode))
                         should_increase = True
                     else:
                         # ignore signal
                         # Wait for sigmax-7, or acknowledge if it is already pending
-                        # logging.debug("wait for server's signal ...")
+                        log.debug("wait for server's signal ...")
                         ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
                         signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
+                        log.debug("signal received!")
                         if ret is None:  # timeout
                             failed_iters.append((i, 'timeout_p'))
                             should_increase = True
@@ -663,7 +665,9 @@ class Fuzzer:
                                 ret = self.srv_p.poll()
                                 if ret is None:  # terminate the server and return
                                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                    log.debug("terminate the server, wait until it terminate..")
                                     self.srv_p.wait()  # wait until strace properly save the output
+                                    log.debug("server terminated")
                                 # server terminate before client, report error
                                 else:
                                     self.kill_servers()
@@ -672,17 +676,22 @@ class Fuzzer:
                             else:  # after polling, connect a client
                                 time.sleep(const.CLIENT_DELAY)
                                 client_ret = client()
+                                log.debug(f"client ret code {client_ret}")
                                 if client_ret != 0:
+                                    log.debug(f"client failed, kill server, wait ... ")
                                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                                     self.srv_p.wait()  # wait until strace properly save the output
+                                    log.debug(f"server terminated ... ")
                                     failed_iters.append((i, 'client_f'))
                                     should_increase = True
                                 else:  # client success, check state of server
                                     try:  # wait for server to terminate after client
                                         retcode = self.srv_p.wait(timeout=self.timeout)
                                     except (TimeoutError, subprocess.TimeoutExpired):
+                                        log.debug("server still exist after client, try to terminate it ...")
                                         os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                                         self.srv_p.wait()  # wait until cov properly save the output
+                                        log.debug("server terminated!")
                                         if self.retcode is not None:  # should exit
                                             failed_iters.append((i, 'timeout_a'))
                                             should_increase = True
@@ -704,6 +713,6 @@ class Fuzzer:
                 self.parse_hash(False)
 
             # output list if necessary
-            log.debug(failed_iters)
+            log.info(failed_iters)
             if should_increase:
                 skip_count = skip_count+1

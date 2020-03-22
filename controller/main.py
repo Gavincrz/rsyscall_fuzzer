@@ -44,7 +44,7 @@ def parse_cmd():
         "-d", "--debug",
         help="Set loglevel to DEBUG, Print lots of debugging statements",
         action="store_const", dest="loglevel", const=logging.DEBUG,
-        default=logging.WARN,
+        default=logging.INFO,
     )
     parser.add_argument(
         "-v", "--verbose",
@@ -78,10 +78,10 @@ def parse_cmd():
         '%(filename)s:%(funcName)s:%(lineno)s - %(message)s')
 
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(args.loglevel)
+    stream_handler.setLevel(logging.WARN)
     stream_handler.setFormatter(formatter)
     file_handler = logging.FileHandler(config['log_file'])
-    file_handler.setLevel(logging.DEBUG)  # log everything to the file
+    file_handler.setLevel(args.loglevel)  # log everything to the file
     file_handler.setFormatter(formatter)
 
     logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, stream_handler])
