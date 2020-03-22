@@ -157,7 +157,8 @@ class Fuzzer:
                 file = open(hash_file_f, 'rb')
                 self.fuzz_cov = pickle.load(file)
                 file.close()
-            except
+            except:
+                pass
 
         json_dict = {}
         with open(self.syscall_config) as f:

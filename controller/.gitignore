@@ -13,3 +13,4 @@ core
 *strace.txt
 *.info
 syscov*
+hash_*
