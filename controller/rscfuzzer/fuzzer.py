@@ -16,6 +16,8 @@ from rscfuzzer.target import targets
 
 log = logging.getLogger(__name__)
 
+hash_file_v = "hash_v.txt"
+hash_file_f = "hash_f.txt"
 
 class Fuzzer:
     def __init__(self, config, target_name, start_skip=0):
@@ -142,6 +144,17 @@ class Fuzzer:
         self.vanila_cov = {}
         self.fuzz_cov = {}
 
+        if os.path.exists(hash_file_v):
+            file = open(hash_file_v, 'r')
+            self.vanila_cov = pickle.load(file)
+            file.close()
+
+        if os.path.exists(hash_file_f):
+            file = open(hash_file_f, 'r')
+            self.fuzz_cov = pickle.load(file)
+            file.close()
+
+
         json_dict = {}
         with open(self.syscall_config) as f:
             json_dict = json.load(f)
@@ -179,8 +192,6 @@ class Fuzzer:
 
     def parse_hash(self, vanilla=True):
         # hardcode filename
-        hash_file_v = "hash_v.txt"
-        hash_file_f = "hash_f.txt"
         with open(self.hash_file) as fp:
             lines = fp.readlines()
             dict = self.vanila_cov
@@ -381,7 +392,10 @@ class Fuzzer:
 
         # run the test
         # copy the vanilla_cov to fuzz_cov
-        self.fuzz_cov = self.vanila_cov.copy()
+        for key, value in self.vanila_cov:
+            if key not in self.fuzz_cov.keys():
+                self.fuzz_cov[key] = value
+
         self.run_interceptor_fuzz(True, None)
         for client in self.target.get("clients"):
             self.run_interceptor_fuzz(False, client)
