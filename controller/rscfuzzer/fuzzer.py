@@ -212,6 +212,8 @@ class Fuzzer:
                     if not vanilla:
                         log.info(f'new syscall found: ({hash}, {syscall}): \n {stack}')
                         print(f'new syscall found: ({hash}, {syscall}): \n {stack}')
+                        log.info(f'new count: {len(self.fuzz_cov) - len(self.vanila_cov)}/{len(self.vanila_cov)}')
+                        print(f'new count: {len(self.fuzz_cov) - len(self.vanila_cov)}/{len(self.vanila_cov)}')
                     dict[hash] = (syscall, 1, stack)
                 else:
                     dict[hash] = (syscall, pair[1]+1, stack)
