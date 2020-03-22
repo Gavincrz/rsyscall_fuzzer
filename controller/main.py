@@ -97,11 +97,11 @@ def parse_cmd():
     if args.parse:
         hash_file_v = "hash_v.txt"
         hash_file_f = "hash_f.txt"
-        file = open(hash_file_v, 'r')
+        file = open(hash_file_v, 'rb')
         dict_v = pickle.load(file)
         file.close()
 
-        file = open(hash_file_f, 'r')
+        file = open(hash_file_f, 'rb')
         dict_f = pickle.load(file)
         file.close()
 

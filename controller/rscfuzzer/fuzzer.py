@@ -145,12 +145,12 @@ class Fuzzer:
         self.fuzz_cov = {}
 
         if os.path.exists(hash_file_v):
-            file = open(hash_file_v, 'r')
+            file = open(hash_file_v, 'rb')
             self.vanila_cov = pickle.load(file)
             file.close()
 
         if os.path.exists(hash_file_f):
-            file = open(hash_file_f, 'r')
+            file = open(hash_file_f, 'rb')
             self.fuzz_cov = pickle.load(file)
             file.close()
 
