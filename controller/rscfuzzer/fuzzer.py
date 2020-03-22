@@ -10,6 +10,7 @@ import stat
 import hashlib
 import shutil
 import json
+import pickle
 
 from rscfuzzer.target import targets
 
@@ -177,6 +178,9 @@ class Fuzzer:
                 pass
 
     def parse_hash(self, vanilla=True):
+        # hardcode filename
+        hash_file_v = "hash_v.txt"
+        hash_file_f = "hash_f.txt"
         with open(self.hash_file) as fp:
             lines = fp.readlines()
             dict = self.vanila_cov
@@ -195,6 +199,14 @@ class Fuzzer:
                     dict[hash] = (syscall, 1, stack)
                 else:
                     dict[hash] = (syscall, pair[1]+1, stack)
+        if vanilla:
+            file = open(hash_file_v, 'w+')
+            pickle.dump(dict, file)
+            file.close()
+        else:
+            file = open(hash_file_f, 'w+')
+            pickle.dump(dict, file)
+            file.close()
 
     def clear_cov(self):
         if self.cov:
@@ -363,9 +375,9 @@ class Fuzzer:
                 support_count += 1
             else:
                 unsupported_set.add(value[0])
-        print(f"support {support_count}/{len(self.vanila_cov)}, "
-              f"{float(support_count)/float(len(self.vanila_cov)) * 100.0}%")
-        print(f"usupported set: {unsupported_set}")
+        log.info(f"support {support_count}/{len(self.vanila_cov)}, "
+                 f"{float(support_count)/float(len(self.vanila_cov)) * 100.0}%")
+        log.info(f"usupported set: {unsupported_set}")
 
         # run the test
         # copy the vanilla_cov to fuzz_cov

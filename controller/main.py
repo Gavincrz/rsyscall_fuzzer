@@ -5,6 +5,7 @@ import logging
 import yaml
 import sys
 import signal
+import pickle
 import os
 from rscfuzzer.target import targets
 from rscfuzzer.fuzzer import Fuzzer
@@ -62,6 +63,12 @@ def parse_cmd():
         action="store_const", dest="test", const=True, default=False,
     )
 
+    parser.add_argument(
+        "-p",
+        help="parsing",
+        action="store_const", dest="parse", const=True, default=False,
+    )
+
     args = parser.parse_args()
     config = load_yaml_file(args.config)
 
@@ -85,6 +92,26 @@ def parse_cmd():
         if clients is not None and len(clients) > 0:
             ret = clients[0]()
             print(ret)
+        exit()
+
+    if args.parse:
+        hash_file_v = "hash_v.txt"
+        hash_file_f = "hash_f.txt"
+        file = open(hash_file_v, 'r')
+        dict_v = pickle.load(file)
+        file.close()
+
+        file = open(hash_file_f, 'r')
+        dict_f = pickle.load(file)
+        file.close()
+
+        new_count = 0
+        for key, value in dict_f.items():
+            if key not in dict_v.keys():
+                new_count += 1
+        log.warning(f"newly added system calls: {new_count}/{len(dict_v)}, "
+                    f"{float(new_count) / float(len(dict_v)) * 100.0}%")
+
         exit()
 
     # create and run the fuzzer
