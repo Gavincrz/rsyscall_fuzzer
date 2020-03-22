@@ -649,8 +649,8 @@ class Fuzzer:
                         log.debug("wait for server's signal ...")
                         ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
                         signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
-                        log.debug("signal received!")
                         if ret is None:  # timeout
+                            log.debug("signal timeout!")
                             failed_iters.append((i, 'timeout_p'))
                             should_increase = True
                             # check server state
@@ -659,6 +659,7 @@ class Fuzzer:
                                 failed_iters.append((i, retcode))
                             self.kill_servers()
                         else:
+                            log.debug("signal received!")
                             # check if this turn only test before poll:
                             if before_poll:
                                 # check if the server crashes,
@@ -675,6 +676,7 @@ class Fuzzer:
                                     should_increase = True
                             else:  # after polling, connect a client
                                 time.sleep(const.CLIENT_DELAY)
+                                log.debug("connecting client ...")
                                 client_ret = client()
                                 log.debug(f"client ret code {client_ret}")
                                 if client_ret != 0:
