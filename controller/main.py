@@ -14,6 +14,45 @@ log = logging.getLogger(__name__)
 sc_fuzzer = None
 
 
+def parse_syscov():
+    hash_file_v = "hash_v.txt"
+    hash_file_f = "hash_f.txt"
+    file = open(hash_file_v, 'rb')
+    dict_v = pickle.load(file)
+    file.close()
+
+    file = open(hash_file_f, 'rb')
+    dict_f = pickle.load(file)
+    file.close()
+
+    new_dict = {}
+    new_count = 0
+    for key, value in dict_f.items():
+        if key not in dict_v.keys():
+            new_count += 1
+            syscall = value[0]
+            stack = value[2]
+            # get the first call in program
+            stack_list = stack.split('\n')
+            recent_call = stack_list[0]
+            for stack_str in stack_list:
+                if '/home/gavin/' in stack_str:
+                    recent_call = stack_str
+                    break
+            final_str = f"{syscall} {recent_call}"
+            if final_str not in new_dict.keys:
+                new_dict[final_str] = 1
+            else:
+                new_dict[final_str] = new_dict[final_str] + 1
+
+    log.warning(f"newly added system calls: {new_count}/{len(dict_v)}, "
+                f"{float(new_count) / float(len(dict_v)) * 100.0}%")
+
+    for item in new_dict.items():
+        print(item)
+
+
+
 def signal_handler(sig, frame):
     global sc_fuzzer
     print('You pressed Ctrl+C, kill running servers')
@@ -95,23 +134,7 @@ def parse_cmd():
         exit()
 
     if args.parse:
-        hash_file_v = "hash_v.txt"
-        hash_file_f = "hash_f.txt"
-        file = open(hash_file_v, 'rb')
-        dict_v = pickle.load(file)
-        file.close()
-
-        file = open(hash_file_f, 'rb')
-        dict_f = pickle.load(file)
-        file.close()
-
-        new_count = 0
-        for key, value in dict_f.items():
-            if key not in dict_v.keys():
-                new_count += 1
-        log.warning(f"newly added system calls: {new_count}/{len(dict_v)}, "
-                    f"{float(new_count) / float(len(dict_v)) * 100.0}%")
-
+        parse_syscov()
         exit()
 
     # create and run the fuzzer
