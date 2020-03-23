@@ -13,5 +13,6 @@ enable_stack_trace = False
 
 ignore_syscall = ['arch_prctl', 'rt_sigaction', 'munmap',
                   'futex', 'ioctl', 'rt_sigprocmask', 'brk',
-                  'mmap', 'execve', 'fcntl', 'mprotect', 'prctl']
+                  'mmap', 'execve', 'fcntl', 'mprotect', 'prctl',
+                  'shutdown']
 will_do = ['access', 'dup2', 'dup3', 'bind', 'accept4', 'epoll_create']

@@ -196,7 +196,7 @@ targets = {
          "poll_time": 5,
          "cov": False,
          "cov_cwd": "/home/gavin/lighttpd-cov/",
-         "fuzz_valid": True,
+         "fuzz_valid": False,
          "sc_cov": True,
          "hash_file": "syscov_lighttpd_complex.txt",
          },
@@ -235,7 +235,7 @@ targets = {
          "poll_time": 3,
          "cov": True,
          "cov_cwd": "/home/gavin/zlib_cov/",
-         "fuzz_valid": False,
+         "fuzz_valid": True,
          },
     "zlib_sccov":
         {"command": "/home/gavin/zlib/example",
