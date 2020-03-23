@@ -40,7 +40,7 @@ def parse_syscov():
                     recent_call = stack_str
                     break
             final_str = f"{syscall} {recent_call}"
-            if final_str not in new_dict.keys:
+            if final_str not in new_dict.keys():
                 new_dict[final_str] = 1
             else:
                 new_dict[final_str] = new_dict[final_str] + 1
