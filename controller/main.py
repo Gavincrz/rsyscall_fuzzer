@@ -47,10 +47,12 @@ def parse_syscov():
 
     log.warning(f"newly added system calls: {new_count}/{len(dict_v)}, "
                 f"{float(new_count) / float(len(dict_v)) * 100.0}%")
-
+    count_2 = 0
     for item in new_dict.items():
         print(item)
+        count_2 += item[1]
 
+    print(count_2)
 
 
 def signal_handler(sig, frame):
