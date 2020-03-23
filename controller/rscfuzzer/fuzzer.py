@@ -390,10 +390,10 @@ class Fuzzer:
         support_count = 0
         ignore_count = 0
         for key, value in self.vanila_cov.items():
-            if value[0] in self.supported and value[0] not in const.will_do:
+            if value[0] in self.supported or value[0] in const.will_do:
                 support_count += 1
             elif value[0] in const.ignore_syscall:
-                ignore_count +=1
+                ignore_count += 1
             else:
                 unsupported_set.add(value[0])
         log.info(f"support {support_count}/{len(self.vanila_cov)}, "
