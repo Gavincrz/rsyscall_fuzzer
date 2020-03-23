@@ -53,6 +53,7 @@ def parse_syscov(name):
         count_2 += item[1]
 
     print(count_2)
+    print(f"length of merged set: {len(new_dict)}")
 
 
 def signal_handler(sig, frame):
