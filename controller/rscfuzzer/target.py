@@ -138,6 +138,27 @@ targets = {
          "poll_time": 3,
          "cov": False
          },
+    "lighttpd_sccov":
+        {"command": "/home/gavin/lighttpd-1.4.51/src/lighttpd "
+                    "-D -f /home/gavin/lighttpd-1.4.51/doc/config/lighttpd.conf",
+         "server": True,
+         "poll": "epoll_wait",
+         "clients": [simple_web_client],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "lighttpd_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 5,
+         "setup_func": None,
+         "poll_time": 3,
+         "cov": False,
+         "sc_cov": True,
+         "hash_file": "syscov_lighttpd.txt",
+         "cov_cwd": "/home/gavin/openssh_cov/",
+         "fuzz_valid": True,
+         },
     "lighttpd_cov":
         {"command": "/home/gavin/lighttpd-cov/src/lighttpd "
                     "-D -f /home/gavin/lighttpd-1.4.51/doc/config/lighttpd.conf",
