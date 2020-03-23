@@ -157,7 +157,7 @@ targets = {
          "sc_cov": True,
          "hash_file": "syscov_lighttpd.txt",
          "cov_cwd": "/home/gavin/openssh_cov/",
-         "fuzz_valid": True,
+         "fuzz_valid": False,
          },
     "lighttpd_cov":
         {"command": "/home/gavin/lighttpd-cov/src/lighttpd "
