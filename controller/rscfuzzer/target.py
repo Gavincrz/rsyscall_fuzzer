@@ -104,7 +104,7 @@ targets = {
          "sc_cov": True,
          "hash_file": "syscov_openssh.txt",
          "cov_cwd": "/home/gavin/openssh_cov/",
-         "fuzz_valid": True,
+         "fuzz_valid": False,
          },
     "cov_test":
         {"command": "/home/gavin/simpletest/cov-test/test",
@@ -253,7 +253,7 @@ targets = {
          "poll_time": 3,
          "cov": False,
          "cov_cwd": "/home/gavin/zlib_cov/",
-         "fuzz_valid": False,
+         "fuzz_valid": False    ,
          "sc_cov": True,
          "hash_file": "syscov_lighttpd_complex.txt",
          },
