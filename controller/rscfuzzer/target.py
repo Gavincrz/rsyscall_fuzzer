@@ -253,7 +253,7 @@ targets = {
          "poll_time": 3,
          "cov": False,
          "cov_cwd": "/home/gavin/zlib_cov/",
-         "fuzz_valid": True,
+         "fuzz_valid": False,
          "sc_cov": True,
          "hash_file": "syscov_lighttpd_complex.txt",
          },
