@@ -108,7 +108,7 @@ def parse_cmd():
     parser.add_argument(
         "-p",
         help="parsing",
-        type=str, dest="parse", default="hash",
+        type=str, dest="parse", default=None,
     )
 
     args = parser.parse_args()

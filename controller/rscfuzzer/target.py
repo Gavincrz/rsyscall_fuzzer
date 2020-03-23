@@ -180,7 +180,28 @@ targets = {
          },
 
     "lighttpd_cov_complex":
-        {"command": "/home/gavin/lighttpd-cov/src/lighttpd "
+        {"command": "/home/gavin/lighttpd-1.4.51/src/lighttpd "
+                    "-D -f /home/gavin/lighttpd-1.4.51/doc/config/lighttpd_complex.conf",
+         "server": True,
+         "poll": "epoll_wait",
+         "clients": [complex_lighttpd_client],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "lighttpd_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 5,
+         "setup_func": None,
+         "poll_time": 3,
+         "cov": False,
+         "cov_cwd": "/home/gavin/lighttpd-cov/",
+         "fuzz_valid": True,
+         "sc_cov": True,
+         "hash_file": "syscov_lighttpd_complex.txt",
+         },
+    "lighttpd_sccov_complex":
+        {"command": "/home/gavin/lighttpd/src/lighttpd "
                     "-D -f /home/gavin/lighttpd-1.4.51/doc/config/lighttpd_complex.conf",
          "server": True,
          "poll": "epoll_wait",
