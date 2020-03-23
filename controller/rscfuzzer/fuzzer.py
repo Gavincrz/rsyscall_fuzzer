@@ -400,7 +400,7 @@ class Fuzzer:
                  f"{float(support_count)/float(len(self.vanila_cov)) * 100.0}%")
         log.info(f"support remove ignore {support_count}/{len(self.vanila_cov) - ignore_count}, "
                  f"{float(support_count) / float(len(self.vanila_cov) - ignore_count) * 100.0}%")
-        log.info(f"usupported set: {unsupported_set}")
+        log.warning(f"usupported set: {unsupported_set}")
 
         # run the test
         # copy the vanilla_cov to fuzz_cov
