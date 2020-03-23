@@ -14,3 +14,4 @@ core
 *.info
 syscov*
 hash_*
+log*

@@ -388,13 +388,18 @@ class Fuzzer:
 
         unsupported_set = set()
         support_count = 0
+        ignore_count = 0
         for key, value in self.vanila_cov.items():
-            if value[0] in self.supported:
+            if value[0] in self.supported and value[0] not in const.will_do:
                 support_count += 1
+            elif value[0] in const.ignore_syscall:
+                ignore_count +=1
             else:
                 unsupported_set.add(value[0])
         log.info(f"support {support_count}/{len(self.vanila_cov)}, "
                  f"{float(support_count)/float(len(self.vanila_cov)) * 100.0}%")
+        log.info(f"support remove ignore {support_count}/{len(self.vanila_cov) - ignore_count}, "
+                 f"{float(support_count) / float(len(self.vanila_cov) - ignore_count) * 100.0}%")
         log.info(f"usupported set: {unsupported_set}")
 
         # run the test

@@ -14,9 +14,9 @@ log = logging.getLogger(__name__)
 sc_fuzzer = None
 
 
-def parse_syscov():
-    hash_file_v = "hash_v.txt"
-    hash_file_f = "hash_f.txt"
+def parse_syscov(name):
+    hash_file_v = f"{name}_v.txt"
+    hash_file_f = f"{name}_f.txt"
     file = open(hash_file_v, 'rb')
     dict_v = pickle.load(file)
     file.close()
@@ -107,7 +107,7 @@ def parse_cmd():
     parser.add_argument(
         "-p",
         help="parsing",
-        action="store_const", dest="parse", const=True, default=False,
+        type=str, dest="parse", default="hash",
     )
 
     args = parser.parse_args()
@@ -135,8 +135,8 @@ def parse_cmd():
             print(ret)
         exit()
 
-    if args.parse:
-        parse_syscov()
+    if args.parse is not None:
+        parse_syscov(args.parse)
         exit()
 
     # create and run the fuzzer
