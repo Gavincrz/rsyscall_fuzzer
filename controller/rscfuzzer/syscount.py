@@ -3,7 +3,7 @@ import json
 import subprocess
 import shlex
 from pathlib import Path
-
+import rscfuzzer.const as const
 output_path = "/home/gavin/llvm_output.txt"
 
 
@@ -36,6 +36,7 @@ def parse_file(path):
             if "Module: " in line:
                 module = line.split(' ')[1]
 
+
 def count_syscalls(path):
     global  syscall_dict
     file_list = get_source_file_list(path)
@@ -45,13 +46,7 @@ def count_syscalls(path):
               f"{file}"
         args = shlex.split(cmd)
         subprocess.run(args)
-        syscall_list = []
-        with open('tmp.txt') as fp:
-            lines = fp.readlines()
-            for line in lines:
-                syscall_list.append(line.split(' ')[1].split('(')[0].replace('*', ''))
-        print(syscall_list)
-        # parse_file(output_path)
+        print(cmd)
 
         exit()
 
