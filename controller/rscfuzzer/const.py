@@ -16,3 +16,18 @@ ignore_syscall = ['arch_prctl', 'rt_sigaction', 'munmap',
                   'mmap', 'execve', 'fcntl', 'mprotect', 'prctl',
                   'shutdown', 'set_robust_list', 'umask', 'alarm', 'clone']
 will_do = ['access', 'dup2', 'dup3', 'bind', 'accept4', 'epoll_create', 'dup']
+
+all_syscall = ["read", "write", "open", "close", "stat", "fstat", "lstat", "poll", "lseek",
+               "ioctl", "pread", "pwrite", "readv", "writev", "access", "pipe", "select",
+               "dup", "dup2", "pause", "nanosleep", "getpid", "sendfile", "socket", "connect",
+               "accept", "sendto", "recvfrom", "sendmsg", "recvmsg", "shutdown", "bind", "listen",
+               "getsockname", "getpeername", "socketpair", "setsockopt", "getsockopt", ]
+
+
+
+
+
+
+
+
+
