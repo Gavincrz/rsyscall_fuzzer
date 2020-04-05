@@ -10,6 +10,7 @@ import os
 from rscfuzzer.target import targets
 from rscfuzzer.fuzzer import Fuzzer
 from rscfuzzer.syscount import *
+from rscfuzzer.retgenerate import *
 
 log = logging.getLogger(__name__)
 sc_fuzzer = None
@@ -120,6 +121,9 @@ def parse_cmd():
     parser.add_argument("-u", "--syscount", metavar="FILE",
                         help="Set compile file", default=None)
 
+    parser.add_argument("-g", "--generate", metavar="FILE",
+                        help="generate valid json", default=None)
+
     parser.add_argument(
         "-p",
         help="parsing",
@@ -153,6 +157,10 @@ def parse_cmd():
 
     if args.syscount is not None:
         count_syscalls(args.syscount)
+        exit()
+
+    if args.generate is not None:
+        generate_json(args.generate, config['syscall_config'])
         exit()
 
     if args.parse is not None:
