@@ -9,14 +9,20 @@ import pickle
 import os
 from rscfuzzer.target import targets
 from rscfuzzer.fuzzer import Fuzzer
+from rscfuzzer.syscount import *
 
 log = logging.getLogger(__name__)
 sc_fuzzer = None
 
 
 def parse_syscov(name):
-    hash_file_v = f"{name}_v.txt"
-    hash_file_f = f"{name}_f.txt"
+    # hash_file_v = f"{name}_v.txt"
+    # hash_file_f = f"{name}_f.txt"
+
+    hash_file_v = f"hash_lighttpd_1_f.txt"
+    hash_file_f = f"hash_lighttpd_va_f.txt"
+
+
     file = open(hash_file_v, 'rb')
     dict_v = pickle.load(file)
     file.close()
@@ -27,11 +33,13 @@ def parse_syscov(name):
 
     new_dict = {}
     new_count = 0
+    output_str = ''
     for key, value in dict_f.items():
         if key not in dict_v.keys():
             new_count += 1
             syscall = value[0]
             stack = value[2]
+            output_str += f"{syscall}\n{stack}\n"
             # get the first call in program
             stack_list = stack.split('\n')
             recent_call = stack_list[0]
@@ -54,6 +62,10 @@ def parse_syscov(name):
 
     print(count_2)
     print(f"length of merged set: {len(new_dict)}")
+
+    f = open("log_test.txt", "w+")
+    f.write(output_str)
+    f.close()
 
 
 def signal_handler(sig, frame):
@@ -105,6 +117,9 @@ def parse_cmd():
         action="store_const", dest="test", const=True, default=False,
     )
 
+    parser.add_argument("-u", "--syscount", metavar="FILE",
+                        help="Set compile file", default=None)
+
     parser.add_argument(
         "-p",
         help="parsing",
@@ -134,6 +149,10 @@ def parse_cmd():
         if clients is not None and len(clients) > 0:
             ret = clients[0]()
             print(ret)
+        exit()
+
+    if args.syscount is not None:
+        count_syscalls(args.syscount)
         exit()
 
     if args.parse is not None:
