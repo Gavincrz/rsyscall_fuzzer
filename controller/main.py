@@ -16,12 +16,9 @@ log = logging.getLogger(__name__)
 sc_fuzzer = None
 
 
-def parse_syscov(name):
-    # hash_file_v = f"{name}_v.txt"
-    # hash_file_f = f"{name}_f.txt"
-
-    hash_file_v = f"hash_lighttpd_1_f.txt"
-    hash_file_f = f"hash_lighttpd_va_f.txt"
+def parse_syscov(file1, file2):
+    hash_file_v = file1
+    hash_file_f = file2
 
 
     file = open(hash_file_v, 'rb')
@@ -32,11 +29,17 @@ def parse_syscov(name):
     dict_f = pickle.load(file)
     file.close()
 
+    diff_dict1 = {}
+    diff_dict2 = {}
+    diff_count1 = 0
+    diff_count2 = 0
     new_dict = {}
     new_count = 0
     output_str = ''
     for key, value in dict_f.items():
         if key not in dict_v.keys():
+            diff_count2 += 1
+            diff_dict2[key] = value
             new_count += 1
             syscall = value[0]
             stack = value[2]
@@ -54,6 +57,11 @@ def parse_syscov(name):
             else:
                 new_dict[final_str] = new_dict[final_str] + 1
 
+    for key, value in dict_v.items():
+        if key not in dict_f.keys():
+            diff_count1 += 1
+            diff_dict1[key] = value
+
     log.warning(f"newly added system calls: {new_count}/{len(dict_v)}, "
                 f"{float(new_count) / float(len(dict_v)) * 100.0}%")
     count_2 = 0
@@ -67,6 +75,12 @@ def parse_syscov(name):
     f = open("log_test.txt", "w+")
     f.write(output_str)
     f.close()
+
+    print(f"{diff_count2} new syscall in {file2}:")
+    print(diff_dict2)
+
+    print(f"{diff_count1} new syscall in {file1}:")
+    print(diff_dict1)
 
 
 def signal_handler(sig, frame):
@@ -164,7 +178,7 @@ def parse_cmd():
         exit()
 
     if args.parse is not None:
-        parse_syscov(args.parse)
+        parse_syscov(args.parse, args.target)
         exit()
 
     # create and run the fuzzer
