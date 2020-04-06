@@ -47,11 +47,12 @@ def generate_json(path, ori_file):
             if syscall == "errno":
                 # add to all ret_v
                 for key, item in sys_dict.items():
-                    item['ret_v'].add(value)
+                    item['ret_v'].add(-value)
                     sys_dict[key] = item
             else:
                 add_set = generate_value(operator, value)
                 ret_val = first_part.split('~')[1]
+                trans_syscall = None
                 if syscall in syscall_translate.keys():
                     trans_syscall = syscall_translate[syscall]
 
@@ -64,22 +65,26 @@ def generate_json(path, ori_file):
                 sys_dict[syscall] = ori_dict
 
                 # add translate syscall
-                ori_dict = sys_dict[trans_syscall]
-                if ori_dict.get(ret_val) is not None:
-                    ori_dict[ret_val].update(add_set)
-                else:
-                    ori_dict[ret_val] = add_set
-                sys_dict[trans_syscall] = ori_dict
+                if trans_syscall is not None:
+                    ori_dict = sys_dict[trans_syscall]
+                    if ori_dict.get(ret_val) is not None:
+                        ori_dict[ret_val].update(add_set)
+                    else:
+                        ori_dict[ret_val] = add_set
+                    sys_dict[trans_syscall] = ori_dict
 
-    new_json['syscalls'] = []
+
+    syscall_list = []
     # write sys_dict to new_json
-    for key, item in sys_dict:
+    for key, item in sys_dict.items():
         temp_dict = {'name': key}
-        temp_dict = dict(temp_dict.items() + item.items())
-        new_json.append(temp_dict)
-
+        for key2, item2 in item.items():
+            temp_dict[key2] = list(item2)
+        syscall_list.append(temp_dict)
+    new_json['syscalls'] = syscall_list
+    print(new_json)
     with open('/home/gavin/syscall_g.json', 'w+') as f:
-        json.dump(new_json, f)
+        json.dump(new_json, f, indent=2)
 
 
 
