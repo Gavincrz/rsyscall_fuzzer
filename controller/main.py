@@ -72,10 +72,10 @@ def parse_syscov(file1, file2):
     f.close()
 
     print(f"{len(diff_dict2)} new syscall in {file2}:")
-    print(diff_dict2)
+    # print(diff_dict2)
 
     print(f"{len(diff_dict1)} new syscall in {file1}:")
-    print(diff_dict1)
+    # print(diff_dict1)
 
 
 def signal_handler(sig, frame):
