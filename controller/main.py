@@ -39,7 +39,6 @@ def parse_syscov(file1, file2):
             new_count += 1
             syscall = value[0]
             stack = value[2]
-            output_str += f"{syscall}\n{stack}\n"
             # get the first call in program
             stack_list = stack.split('\n')
             recent_call = stack_list[0]
@@ -50,6 +49,7 @@ def parse_syscov(file1, file2):
             final_str = f"{syscall} {recent_call}"
             if final_str not in new_dict.keys():
                 new_dict[final_str] = 1
+                output_str += f"{syscall}\n{stack}\n"
             else:
                 new_dict[final_str] = new_dict[final_str] + 1
 
