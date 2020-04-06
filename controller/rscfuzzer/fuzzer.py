@@ -137,6 +137,14 @@ class Fuzzer:
 
         self.sc_cov = self.target.get("sc_cov", False)
         self.hash_file = self.target.get("hash_file", None)
+
+        self.r_cov = self.target.get('r_cov', False)
+        self.sysjson = self.target.get('syscall_json', None)
+        if self.r_cov and (self.hash_file is None or self.sysjson is None):
+            sys.exit(f"both sysjson and hash_file need to be set for r_cov")
+        if self.r_cov:
+            self.syscall_config = self.sysjson
+
         if self.sc_cov and self.hash_file is None:
             sys.exit(f"hash_file not set for sc_cov target: {self.target_name}")
         self.fuzz_valid = self.target.get("fuzz_valid", False)
