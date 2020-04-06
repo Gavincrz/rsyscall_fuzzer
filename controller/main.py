@@ -69,7 +69,6 @@ def parse_syscov(file1, file2):
 
     f = open("log_test.txt", "w+")
     f.write(output_str)
-    f.close()
 
     print(f"{len(diff_dict2)} new syscall in {file2}:")
     # print(diff_dict2)
