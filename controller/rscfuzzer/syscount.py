@@ -2,6 +2,7 @@ import os
 import json
 import subprocess
 import shlex
+import pickle
 from pathlib import Path
 import rscfuzzer.const as const
 
@@ -123,6 +124,7 @@ def count_syscalls(path):
     func_count = 0
     called_count = 0
     wrapper_list = []
+    syscall_func_list = []
     for func, value in func_dict.items():
         syscall_count = 0
         for item in value[0]:
@@ -131,6 +133,7 @@ def count_syscalls(path):
         if syscall_count > 0:
             func_count += 1
             print(f"Function: {func} : syscall number: {syscall_count}")
+            syscall_func_list.append(func)
         if value[1] and value[2] >= wrapper_th:
             wrapper_list.append((func, value[2]))
         if value[2] > 0:
@@ -138,7 +141,23 @@ def count_syscalls(path):
     print(f"{func_count}/{called_count}/{len(func_dict)} functions contain syscalls")
     print(f"{len(wrapper_list)} wrapper functions when threshold = 4")
     print(wrapper_list)
+    return syscall_func_list, wrapper_list
 
 
+def check_syscall_coverage(count_file, hash_file):
+    syscall_func_list, wrapper_list = count_syscalls(count_file)
+
+    # start parsing hash_file
+
+    file = open(hash_file, 'rb')
+    hash_dict = pickle.load(file)
+    file.close()
+
+    for key, value in hash_dict.items():
+        stack = value[2]
+        stack_list = stack.split('\n')
+        for item in stack_list:
+            print(item)
+            
 
 

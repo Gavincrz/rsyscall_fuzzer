@@ -173,12 +173,16 @@ def parse_cmd():
             print(ret)
         exit()
 
-    if args.syscount is not None:
+    if args.syscount is not None and args.parse is None:
         count_syscalls(args.syscount)
         exit()
 
     if args.generate is not None:
         generate_json(args.generate, config['syscall_config'])
+        exit()
+
+    if args.syscount is not None and args.parse is not None:
+        check_syscall_coverage(args.syscount, args.parse)
         exit()
 
     if args.parse is not None:
