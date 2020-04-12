@@ -1,6 +1,7 @@
 import paramiko
 import logging
 import warnings
+import shutil
 import urllib.request as request
 
 # suppress warning and logs for paramiko
@@ -49,6 +50,15 @@ def complex_lighttpd_client():
         return -1
     else:
         return 0
+
+
+def clean_up_git():
+    try:
+        shutil.rmtree('/home/gavin/gittest')
+    except FileNotFoundError:
+        print("Git Directory dose not exist")
+    except Exception as e:
+        print(e)
 
 
 targets = {
@@ -349,4 +359,24 @@ targets = {
          "hash_file": "syscov_lighttpd_complex.txt",
          },
 
+    "git_sccov":
+        {"command": "/home/gavin/git-2.18.0/git clone git@github.com:Gavincrz/FileTransfer.git /home/gavin/gittest/",
+         "server": False,
+         "poll": None,
+         "clients": [],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "zlib_cov_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 15,
+         "setup_func": clean_up_git,
+         "poll_time": 3,
+         "fuzz_valid": True,
+         "a_cov": False,
+         "sc_cov": True,
+         "syscall_json": "/home/gavin/zlib_syscall.json",
+         "hash_file": "syscov_git.txt",
+         },
 }

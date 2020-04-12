@@ -126,6 +126,8 @@ def count_syscalls(path):
     called_count = 0
     wrapper_list = []
     syscall_func_list = []
+    indirect_call_list = []
+    wrapper_name_list = []
     for func, value in func_dict.items():
         syscall_count = 0
         for item in value[0]:
@@ -135,18 +137,21 @@ def count_syscalls(path):
             func_count += 1
             print(f"Function: {func} : syscall number: {syscall_count}")
             syscall_func_list.append(func)
-        if value[1] and value[2] >= wrapper_th:
-            wrapper_list.append((func, value[2]))
+        if value[1]:
+            indirect_call_list.append(func)
+            if value[2] >= wrapper_th:
+                wrapper_name_list.append(func)
+                wrapper_list.append((func, value[2]))
         if value[2] > 0:
             called_count += 1
     print(f"{func_count}/{called_count}/{len(func_dict)} functions contain syscalls")
     print(f"{len(wrapper_list)} wrapper functions when threshold = 4")
     print(wrapper_list)
-    return syscall_func_list, wrapper_list
+    return syscall_func_list, indirect_call_list, wrapper_name_list
 
 
 def check_syscall_coverage(count_file, hash_file):
-    syscall_func_list, wrapper_list = count_syscalls(count_file)
+    syscall_func_list, indirect_list, wrapper_list = count_syscalls(count_file)
 
     # start parsing hash_file
 
@@ -154,7 +159,13 @@ def check_syscall_coverage(count_file, hash_file):
     hash_dict = pickle.load(file)
     file.close()
 
-    func_pattern = r"\((w+)\)"
+    func_pattern = r"\((.+)\)"
+
+    matched_func = set()
+    matched_wrapper = set()
+    matched_indirect = set()
+    func_set = set()
+    not_any_set = set()
     for key, value in hash_dict.items():
         stack_str = value[2]
         stack_list = stack_str.split('\n')
@@ -162,7 +173,28 @@ def check_syscall_coverage(count_file, hash_file):
             result = re.search(func_pattern, stack)
             if result is not None:
                 func_name = result.group(1)
-                print(func_name)
+                func_name = func_name.split('.')[0].split('+')[0]
+                func_set.add(func_name)
+                if func_name in syscall_func_list:
+                    matched_func.add(func_name)
+                if func_name in indirect_list:
+                    matched_indirect.add(func_name)
+                else:
+                    not_any_set.add(func_name)
+                if func_name in wrapper_list:
+                    matched_wrapper.add(func_name)
+    for func in not_any_set:
+        print(func)
+
+    print(f'{len(matched_func)}/{len(syscall_func_list)} '
+          f'({float(len(matched_func)) / float(len(syscall_func_list)) * 100.0}%) '
+          f'functions contain syscalls reached')
+    print(f'{len(matched_indirect)}/{len(indirect_list)} '
+          f'({float(len(matched_indirect)) / float(len(indirect_list)) * 100.0}%) '
+          f'functions(have syscall in their call path) reached')
+    print(f'{len(matched_wrapper)}/{len(wrapper_list)} '
+          f'({float(len(matched_wrapper)) / float(len(wrapper_list)) * 100.0}%) helper functions reached')
+
 
 
 
