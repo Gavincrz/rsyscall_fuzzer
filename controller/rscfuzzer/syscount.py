@@ -4,6 +4,7 @@ import subprocess
 import shlex
 import pickle
 from pathlib import Path
+import re
 import rscfuzzer.const as const
 
 output_path = "/home/gavin/llvm_output.txt"
@@ -153,11 +154,15 @@ def check_syscall_coverage(count_file, hash_file):
     hash_dict = pickle.load(file)
     file.close()
 
+    func_pattern = r"\((w+)\)"
     for key, value in hash_dict.items():
-        stack = value[2]
-        stack_list = stack.split('\n')
-        for item in stack_list:
-            print(item)
-            
+        stack_str = value[2]
+        stack_list = stack_str.split('\n')
+        for stack in stack_list:
+            result = re.search(func_pattern, stack)
+            if result is not None:
+                func_name = result.group(1)
+                print(func_name)
+
 
 
