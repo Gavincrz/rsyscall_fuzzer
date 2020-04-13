@@ -183,8 +183,12 @@ def check_syscall_coverage(count_file, hash_file):
                     not_any_set.add(func_name)
                 if func_name in wrapper_list:
                     matched_wrapper.add(func_name)
-    for func in not_any_set:
-        print(func)
+
+    missed_func = []
+    for func in syscall_func_list:
+        if func not in matched_func:
+            missed_func.append(func)
+    print(missed_func)
 
     print(f'{len(matched_func)}/{len(syscall_func_list)} '
           f'({float(len(matched_func)) / float(len(syscall_func_list)) * 100.0}%) '
