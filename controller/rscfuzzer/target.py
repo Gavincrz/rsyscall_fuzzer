@@ -56,7 +56,8 @@ def clean_up_git():
     try:
         shutil.rmtree('/home/gavin/gittest')
     except FileNotFoundError:
-        print("Git Directory dose not exist")
+        # print("Git Directory dose not exist")
+        pass
     except Exception as e:
         print(e)
 
