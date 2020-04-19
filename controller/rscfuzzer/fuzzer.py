@@ -456,7 +456,7 @@ class Fuzzer:
         # run the test version
         self.run_interceptor_fuzz(before_poll, client)
 
-
+    def run_interceptor_vanilla(self, before_poll=True, client=None):
         if self.setup_func is not None:
             self.setup_func()
         # construct the strace command
