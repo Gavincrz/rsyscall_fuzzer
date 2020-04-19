@@ -2,7 +2,9 @@ import paramiko
 import logging
 import warnings
 import shutil
+import memcached_udp
 import urllib.request as request
+import os
 
 # suppress warning and logs for paramiko
 warnings.filterwarnings(action='ignore',module='.*paramiko.*')
@@ -60,6 +62,28 @@ def clean_up_git():
         pass
     except Exception as e:
         print(e)
+
+
+def git_init_setup():
+    try:
+        shutil.rmtree('/home/gavin/gittest')
+    except FileNotFoundError:
+        # print("Git Directory dose not exist")
+        pass
+    except Exception as e:
+        print(e)
+    os.mkdir('/home/gavin/gittest')
+
+
+def connect_memcached_client():
+    try:
+        client = memcached_udp.Client([('127.0.0.1', 11111)], response_timeout=3)
+        client.set('key1', 'value1')
+        r = client.get('key1')
+    except Exception as e:
+        return -1
+    else:
+        return 0
 
 
 targets = {
@@ -360,6 +384,29 @@ targets = {
          "hash_file": "syscov_lighttpd_complex.txt",
          },
 
+    "memcached_sccov":
+        {"command": "/home/gavin/memcached-1.5.20/memcached -p 11111 -U 11111 -u gavin",
+         "server": True,
+         "poll": "epoll_wait",
+         "clients": [connect_memcached_client],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "memcached_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 8,
+         "setup_func": None,
+         "poll_time": 5,
+         "cov": False,
+         "a_cov": True,
+         "cov_cwd": "/home/gavin/memcached-cov/",
+         "fuzz_valid": True,
+         "sc_cov": True,
+         "syscall_json": "/home/gavin/memcached_syscall.json",
+         "hash_file": "syscov_memcached.txt",
+         },
+
     "git_sccov":
         {"command": "/home/gavin/git-2.18.0/git clone git@github.com:Gavincrz/FileTransfer.git /home/gavin/gittest/",
          "server": False,
@@ -373,6 +420,27 @@ targets = {
          "input": None,
          "timeout": 15,
          "setup_func": clean_up_git,
+         "poll_time": 3,
+         "fuzz_valid": True,
+         "a_cov": True,
+         "sc_cov": True,
+         "syscall_json": "/home/gavin/git_syscall.json",
+         "hash_file": "syscov_git.txt",
+         },
+
+    "git_init_sccov":
+        {"command": "/home/gavin/git-2.18.0/git init",
+         "server": False,
+         "poll": None,
+         "clients": [],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "git_sccov_strace.txt",
+         "cwd": "/home/gavin/gittest",
+         "input": None,
+         "timeout": 15,
+         "setup_func": git_init_setup,
          "poll_time": 3,
          "fuzz_valid": True,
          "a_cov": True,
