@@ -90,7 +90,7 @@ def parse_syscov(file1, file2):
     f.close()
 
     # dump merged file
-    file_m = open('hash_merge.txt', 'w+')
+    file_m = open('hash_merge.txt', 'wb+')
     pickle.dump(dict_v, file_m)
     file.close()
     print("file merged to hash_merge.txt")
