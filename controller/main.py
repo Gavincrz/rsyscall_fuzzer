@@ -35,6 +35,9 @@ def parse_syscov(file1, file2):
     output_str = ''
     for key, value in dict_f.items():
         if key not in dict_v.keys():
+            # add value to dict_v
+            dict_v[key] = value
+
             diff_dict2[key] = value
             new_count += 1
             syscall = value[0]
@@ -85,6 +88,12 @@ def parse_syscov(file1, file2):
         f.write(f"{item[0]}")
         f.write(item[2])
     f.close()
+
+    # dump merged file
+    file_m = open('hash_merge.txt', 'w+')
+    pickle.dump(dict_v, file_m)
+    file.close()
+    print("file merged to hash_merge.txt")
 
 
 def signal_handler(sig, frame):
@@ -148,6 +157,12 @@ def parse_cmd():
         type=str, dest="parse", default=None,
     )
 
+    parser.add_argument(
+        "-m",
+        help="merge",
+        type=str, dest="merge", default=None,
+    )
+
     args = parser.parse_args()
     config = load_yaml_file(args.config)
 
@@ -188,6 +203,7 @@ def parse_cmd():
     if args.parse is not None:
         parse_syscov(args.parse, args.target)
         exit()
+
 
     # create and run the fuzzer
     sc_fuzzer = Fuzzer(config, args.target, args.skip)
