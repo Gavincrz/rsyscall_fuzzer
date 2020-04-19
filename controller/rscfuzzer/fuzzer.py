@@ -137,6 +137,9 @@ class Fuzzer:
 
         self.sc_cov = self.target.get("sc_cov", False)
         self.hash_file = self.target.get("hash_file", None)
+        if self.hash_file is not None and self.target_cwd is not None:
+            self.hash_file = os.path.join(self.target_cwd, self.hash_file)
+        print(f'hash_file = {self.hash_file}')
 
         self.a_cov = self.target.get('a_cov', False)
         self.sysjson = self.target.get('syscall_json', None)
