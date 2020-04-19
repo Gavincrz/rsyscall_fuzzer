@@ -33,11 +33,10 @@ def parse_syscov(file1, file2):
     new_dict = {}
     new_count = 0
     output_str = ''
+    merge_dict = dict_v.copy()
     for key, value in dict_f.items():
         if key not in dict_v.keys():
-            # add value to dict_v
-            dict_v[key] = value
-
+            merge_dict[key] = value
             diff_dict2[key] = value
             new_count += 1
             syscall = value[0]
@@ -91,7 +90,7 @@ def parse_syscov(file1, file2):
 
     # dump merged file
     file_m = open('hash_merge.txt', 'wb+')
-    pickle.dump(dict_v, file_m)
+    pickle.dump(merge_dict, file_m)
     file.close()
     print("file merged to hash_merge.txt")
 
