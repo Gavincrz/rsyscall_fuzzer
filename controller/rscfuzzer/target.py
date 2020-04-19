@@ -5,7 +5,8 @@ import shutil
 import memcached_udp
 import urllib.request as request
 import os
-
+import shlex
+import subprocess
 # suppress warning and logs for paramiko
 warnings.filterwarnings(action='ignore',module='.*paramiko.*')
 logging.getLogger("paramiko").setLevel(logging.CRITICAL)
@@ -65,14 +66,30 @@ def clean_up_git():
 
 
 def git_init_setup():
-    try:
-        shutil.rmtree('/home/gavin/gittest')
-    except FileNotFoundError:
-        # print("Git Directory dose not exist")
-        pass
-    except Exception as e:
-        print(e)
+    clean_up_git()
     os.mkdir('/home/gavin/gittest')
+
+
+def git_add_setup():
+    git_init_setup()
+    args_init = shlex.split('git init')
+    subprocess.run(args_init, cwd = '/home/gavin/gittest')
+    # write file to git diretory
+    content = os.urandom(1024)
+    f = open("/home/gavin/gittest/testfile.txt", "wb")
+    f.write(content)
+    f.close()
+
+
+def git_commit_setup():
+    git_add_setup()
+    args_add = shlex.split('git add -A')
+    subprocess.run(args_add, cwd='/home/gavin/gittest')
+
+
+def git_pull_setup():
+    clean_up_git()
+    shutil.copytree('/home/gavin/git_copy/FileTransfer', '/home/gavin/gittest')
 
 
 def connect_memcached_client():
@@ -447,5 +464,71 @@ targets = {
          "sc_cov": True,
          "syscall_json": "/home/gavin/git_syscall.json",
          "hash_file": "syscov_git.txt",
+         },
+
+    "git_add_sccov":
+        {"command": "/home/gavin/git-2.18.0/git add -A",
+         "server": False,
+         "poll": None,
+         "clients": [],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "git_sccov_strace.txt",
+         "cwd": "/home/gavin/gittest",
+         "input": None,
+         "timeout": 15,
+         "setup_func": git_add_setup,
+         "poll_time": 3,
+         "fuzz_valid": True,
+         "a_cov": True,
+         "sc_cov": True,
+         "syscall_json": "/home/gavin/git_syscall.json",
+         "hash_file": "syscov_git.txt",
+         "num_iteration": 5,
+         },
+
+    "git_commit_sccov":
+        {"command": "/home/gavin/git-2.18.0/git commit -m 'test commit'",
+         "server": False,
+         "poll": None,
+         "clients": [],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "git_sccov_strace.txt",
+         "cwd": "/home/gavin/gittest",
+         "input": None,
+         "timeout": 15,
+         "setup_func": git_commit_setup,
+         "poll_time": 3,
+         "fuzz_valid": True,
+         "a_cov": True,
+         "sc_cov": True,
+         "syscall_json": "/home/gavin/git_syscall.json",
+         "hash_file": "syscov_git.txt",
+         "num_iteration": 5,
+         },
+
+    "git_pull_sccov":
+        {"command": "/home/gavin/git-2.18.0/git pull",
+         "server": False,
+         "poll": None,
+         "clients": [],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "git_sccov_strace.txt",
+         "cwd": "/home/gavin/gittest",
+         "input": None,
+         "timeout": 15,
+         "setup_func": git_pull_setup,
+         "poll_time": 3,
+         "fuzz_valid": True,
+         "a_cov": True,
+         "sc_cov": True,
+         "syscall_json": "/home/gavin/git_syscall.json",
+         "hash_file": "syscov_git.txt",
+         "num_iteration": 5,
          },
 }

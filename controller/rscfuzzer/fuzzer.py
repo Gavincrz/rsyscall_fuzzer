@@ -96,6 +96,9 @@ class Fuzzer:
         self.record_file = self.config.get("record_file", None)
 
         self.iteration = self.config.get("num_iteration", 20)
+        target_iteration = self.target.get("num_iteration", None)
+        if target_iteration is not None:
+            self.iteration = target_iteration
 
         self.setup_func = self.target.get("setup_func", None)
 
