@@ -119,7 +119,9 @@ targets = {
          "timeout": 5,
          "setup_func": None,
          "poll_time": 3,
-         "cov": False
+         "cov": False,
+         "sc_cov": True,
+         "hash_file": "syscov_openssh.txt",
          },
     "openssh_cov":
         {"command": "/home/gavin/openssh_cov/sshd -f /home/gavin/ssh_trace/sshd_config -D -d",
@@ -211,6 +213,8 @@ targets = {
          "timeout": 5,
          "setup_func": None,
          "poll_time": 3,
+         "sc_cov": True,
+         "hash_file": "syscov_lighttpd.txt",
          "cov": False
          },
     "lighttpd_sccov":
