@@ -57,9 +57,25 @@
       "name": "epoll_create",
       "ret_v": [-22, -24, -23, -12]
     },
-    {
+    ,{
       "name": "poll",
       "ret_v": [-14, -4, -22, -12]
+    },
+    {
+      "name": "socket",
+      "ret_v": [-13, -97, -22, -23, -105, -12, -93]
+    },
+    {
+      "name": "getdents"
+    },
+    {
+      "name": "getsockname"
+    },
+    {
+      "name": "getsockopt"
+    },
+    {
+      "name": "select"
     }
   ]
 }

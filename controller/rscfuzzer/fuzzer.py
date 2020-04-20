@@ -307,7 +307,7 @@ class Fuzzer:
                 data = self.gdb_p.stdout.readline().decode("utf-8")
                 if const.top_stack_pattern.match(data):
                     break
-                if const.not_found_pattern.match(data):
+                if const.not_found_pattern.match(data) or const.gdb_not_found.match(data):
                     self.kill_gdb()
                     return
 
@@ -335,6 +335,7 @@ class Fuzzer:
                 dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
                 shutil.copy(file, dst)
                 log.info(f"core file stored to {dst}")
+                log.error(f"New Core Found: stored to {dst}")
                 # copy the record file as well
                 dst = os.path.join(self.store_core_dir, f"record.{hash_str}.txt")
                 shutil.copy(self.record_file, dst)

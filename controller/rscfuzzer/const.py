@@ -9,6 +9,7 @@ top_stack_pattern = re.compile("#.*")
 at_pattern = re.compile("#.* at .*")
 not_found_pattern = re.compile(".*No such file or directory.*")
 empty_history_pattern = re.compile(".*The history is empty.*")
+gdb_not_found = re.compile(".*File format not recognized.*")
 enable_stack_trace = False
 
 ignore_syscall = ['arch_prctl', 'rt_sigaction', 'munmap',
