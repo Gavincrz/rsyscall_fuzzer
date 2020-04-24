@@ -737,7 +737,9 @@ class Fuzzer:
 
                 # handle core dumped
                 core_ret = self.handle_core_dump()
-                if core_ret > 0:
+                if core_ret is None:
+                    print("are you kiddingme ? how could this be NOne?")
+                elif core_ret > 0:
                     self.kill_servers()
                     failed_iters.append((i, 'core'))
                     should_increase = True
