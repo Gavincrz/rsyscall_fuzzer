@@ -516,7 +516,6 @@ class Fuzzer:
             if ret:
                 logging.debug(f"sig {const.ACCEPT_SIG} received!")
             else:
-                self.()
                 sys.exit("signal wait timeout during vanilla run, terminate the process")
 
             # check if this turn only test before poll:
