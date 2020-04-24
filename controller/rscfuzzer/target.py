@@ -7,7 +7,7 @@ import urllib.request as request
 import os
 import shlex
 import subprocess
-
+import memcached_udp
 # suppress warning and logs for paramiko
 warnings.filterwarnings(action='ignore',module='.*paramiko.*')
 logging.getLogger("paramiko").setLevel(logging.CRITICAL)
@@ -16,6 +16,19 @@ log = logging.getLogger(__name__)
 
 
 # client functions
+
+def connect_memcached_client(a1=None, a2=None):
+    try:
+        client = memcached_udp.Client([('127.0.0.1', 11111)], response_timeout=3)
+        client.set('key1', 'value1')
+        r = client.get('key1')
+        # print(r)
+    except Exception as e:
+        # print(e)
+        return -1
+    else:
+        return 0
+
 def openssh_simple_client():
     try:
         ssh = paramiko.SSHClient()
@@ -535,5 +548,23 @@ targets = {
          "syscall_json": "/home/gavin/git_syscall.json",
          "hash_file": "syscov_git.txt",
          "num_iteration": 5,
+         },
+    "memcached":
+        {"command": "/home/gavin/memcached-1.5.20/memcached -p 11111 -U 11111 -u gavin",
+         "server": True,
+         "poll": "epoll_wait",
+         "clients": [connect_memcached_client],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "memcached_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 5,
+         "setup_func": None,
+         "poll_time": 3,
+         "sc_cov": True,
+         "hash_file": "syscov_memcached.txt",
+         "cov": False
          },
 }

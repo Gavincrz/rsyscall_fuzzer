@@ -11,6 +11,7 @@ import hashlib
 import shutil
 import json
 import pickle
+import psutil
 
 from rscfuzzer.target import targets
 
@@ -279,6 +280,12 @@ class Fuzzer:
                 os.killpg(os.getpgid(self.srv_p.pid), signal.SIGKILL)
             except ProcessLookupError:
                 self.srv_p = None
+        for proc in psutil.process_iter():
+            # check whether the process name matches
+            if self.binary in proc.name():
+                print("found not killed process, kill it")
+                proc.kill()
+
 
     def kill_gdb(self):
         if self.gdb_p:
@@ -509,7 +516,7 @@ class Fuzzer:
             if ret:
                 logging.debug(f"sig {const.ACCEPT_SIG} received!")
             else:
-                self.kill_servers()
+                self.()
                 sys.exit("signal wait timeout during vanilla run, terminate the process")
 
             # check if this turn only test before poll:
