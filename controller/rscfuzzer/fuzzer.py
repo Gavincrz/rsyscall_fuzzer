@@ -714,7 +714,11 @@ class Fuzzer:
                                     except (TimeoutError, subprocess.TimeoutExpired):
                                         log.debug("server still exist after client, try to terminate it ...")
                                         os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
-                                        self.srv_p.wait()  # wait until cov properly save the output
+                                        try:
+                                            self.srv_p.wait(5)  # wait until cov properly save the output
+                                        except:
+                                            log.error("server terminate time out, force kill")
+                                            self.kill_servers()
                                         log.debug("server terminated!")
                                         if self.retcode is not None:  # should exit
                                             failed_iters.append((i, 'timeout_a'))
