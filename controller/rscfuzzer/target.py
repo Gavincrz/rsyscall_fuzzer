@@ -470,7 +470,7 @@ targets = {
          "sudo": True,
          "retcode": None,
          "env": None,
-         "strace_log": "git__strace.txt",
+         "strace_log": "git_strace.txt",
          "cwd": None,
          "input": None,
          "timeout": 15,

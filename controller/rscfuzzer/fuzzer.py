@@ -293,7 +293,7 @@ class Fuzzer:
 
     def handle_core_dump(self):
         core_list = []
-        log.info("handle core dump")
+        # log.info("handle core dump")
         for f in os.listdir(self.core_dir):
             if 'core.' in f:
                 core_list.append(os.path.join(self.core_dir, f))
@@ -352,7 +352,7 @@ class Fuzzer:
                 dst = os.path.join(self.store_core_dir, f"strace.{hash_str}.txt")
                 shutil.copy(self.strace_log, dst)
                 log.info(f"strace file stored to {dst}")
-        log.info("finish handle core dump")
+        # log.info("finish handle core dump")
         return len(core_list)
 
     def run_cov(self):
