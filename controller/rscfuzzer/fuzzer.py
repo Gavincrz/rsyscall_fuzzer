@@ -70,7 +70,7 @@ class Fuzzer:
         except IOError as e:
             sys.exit(f"unable to open strace_log file: {self.strace_log}: {e}")
         else:
-            log.info(f"strace log will saved to {self.strace_log}")
+            log.error(f"strace log will saved to {self.strace_log}")
         try:
             os.chmod(self.strace_log, stat.S_IWOTH | stat.S_IROTH)
         except IOError as e:
@@ -107,7 +107,7 @@ class Fuzzer:
         self.store_core_dir = self.config.get("store_core_dir", "stored_cores")
         self.binary = self.command.split(' ')[0].split('/')[-1]
         self.core_dir = os.path.join(self.core_dir, self.binary)
-
+        signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
         # mkdir if necessary
         if not os.path.exists(self.core_dir):
             os.makedirs(self.core_dir, mode=0o777)
@@ -224,10 +224,10 @@ class Fuzzer:
                 stack = temp[2].replace('%', '\n')
                 pair = dict.get(hash)
                 if pair is None:
-                    if not vanilla:
-                        log.info(f'new syscall found: ({hash}, {syscall}): \n {stack}')
+                    # if not vanilla:
+                        # log.info(f'new syscall found: ({hash}, {syscall}): \n {stack}')
                         # print(f'new syscall found: ({hash}, {syscall}): \n {stack}')
-                        log.info(f'new count: {len(self.fuzz_cov) - len(self.vanila_cov)}/{len(self.vanila_cov)}')
+                        # log.info(f'new count: {len(self.fuzz_cov) - len(self.vanila_cov)}/{len(self.vanila_cov)}')
                         # print(f'new count: {len(self.fuzz_cov) - len(self.vanila_cov)}/{len(self.vanila_cov)}')
                     dict[hash] = (syscall, 1, stack)
                 else:
@@ -293,6 +293,7 @@ class Fuzzer:
 
     def handle_core_dump(self):
         core_list = []
+        log.info("handle core dump")
         for f in os.listdir(self.core_dir):
             if 'core.' in f:
                 core_list.append(os.path.join(self.core_dir, f))
@@ -351,7 +352,7 @@ class Fuzzer:
                 dst = os.path.join(self.store_core_dir, f"strace.{hash_str}.txt")
                 shutil.copy(self.strace_log, dst)
                 log.info(f"strace file stored to {dst}")
-
+        log.info("finish handle core dump")
         return len(core_list)
 
     def run_cov(self):
@@ -490,7 +491,7 @@ class Fuzzer:
 
         if self.sudo:
             strace_cmd = f"sudo -E {strace_cmd}"
-
+        # strace_cmd = f"sudo -E /home/gavin/strace/strace -ff -j epoll_wait -J {cur_pid} -G -B 644 -K /home/gavin/rsyscall_fuzzer/controller/syscall.json -L /home/gavin/rsyscall_fuzzer/controller/record.txt -n syscov_memcached.txt /home/gavin/memcached-1.5.20/memcached -p 11111 -U 11111 -u gavin"
         # run the interceptor, make sure nothing else is running
         self.kill_servers()
         log.info(f"running vanilla target with command {strace_cmd}")
@@ -509,7 +510,7 @@ class Fuzzer:
         # wait for accept signal if it is a server
         if self.server:
             # ignore signal
-            signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
+            # signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
             # Wait for sigmax-7, or acknowledge if it is already pending
             ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
             signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
@@ -636,10 +637,10 @@ class Fuzzer:
                 if self.setup_func is not None:
                     self.setup_func()
                 log.debug(f"start iteration {i}")
-                signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
+                # signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
                 # Block signal until sigwait (if caught, it will become pending)
                 signal.pthread_sigmask(signal.SIG_BLOCK, [const.ACCEPT_SIG])
-
+                # signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
                 self.srv_p = subprocess.Popen(args,
                                               stdin=subprocess.PIPE,
                                               stdout=self.strace_log_fd,
@@ -665,7 +666,7 @@ class Fuzzer:
                             should_increase = True
                 else:  # handle servers
                     # check if server exist before wait for signal (save time)
-                    time.sleep(0.5)
+                    # time.sleep(0.5)
                     retcode = self.srv_p.poll()
                     log.debug("check server exist before wait for signal")
                     if retcode is not None:
@@ -686,6 +687,7 @@ class Fuzzer:
                             if retcode is not None:
                                 failed_iters.append((i, retcode))
                             self.kill_servers()
+                            # exit(0)
                         else:
                             log.debug("signal received!")
                             # check if this turn only test before poll:
@@ -695,7 +697,11 @@ class Fuzzer:
                                 if ret is None:  # terminate the server and return
                                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                                     log.debug("terminate the server, wait until it terminate..")
-                                    self.srv_p.wait()  # wait until strace properly save the output
+                                    try:
+                                        self.srv_p.wait(5)  # wait until strace properly save the output
+                                    except:
+                                        log.debug("server terminate timeout, force kill")
+                                        self.kill_servers()
                                     log.debug("server terminated")
                                 # server terminate before client, report error
                                 else:
@@ -710,7 +716,11 @@ class Fuzzer:
                                 if client_ret != 0:
                                     log.debug(f"client failed, kill server, wait ... ")
                                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
-                                    self.srv_p.wait()  # wait until strace properly save the output
+                                    try:
+                                        self.srv_p.wait(5)  # wait until strace properly save the output
+                                    except:
+                                        log.debug("server terminate timeout, force kill")
+                                        self.kill_servers()
                                     log.debug(f"server terminated ... ")
                                     failed_iters.append((i, 'client_f'))
                                     should_increase = True
@@ -747,6 +757,7 @@ class Fuzzer:
                 #     if iteration == i:
                 #         log.info(f"{iteration}: {code}")
                 self.parse_hash(False)
+                log.debug("finish parse hash")
 
             # output list if necessary
             log.info(failed_iters)
