@@ -172,6 +172,8 @@ def compare_syscall_coverage(count_file, hash_file1, hash_file2):
     compare_diff(matched_indirect1, matched_indirect2)
     print('unique wrapper func:')
     compare_diff(matched_wrapper1, matched_wrapper2)
+    print('\n\n')
+    print(matched_indirect2, matched_wrapper2)
 
 
 def check_syscall_coverage(count_file, hash_file):
