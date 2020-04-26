@@ -160,7 +160,7 @@ def compare_diff(list1, list2):
     for item in list2:
         if item not in list1:
             unique2.append(item)
-    print(f"unique for list1: len{unique1}, unique2: {len(unique2)}")
+    print(f"unique for list1: {len(unique1)} \n{unique1}, unique2: {len(unique2)}\n{unique2}")
 
 
 def compare_syscall_coverage(count_file, hash_file1, hash_file2):
