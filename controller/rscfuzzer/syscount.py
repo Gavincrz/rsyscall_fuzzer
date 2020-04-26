@@ -150,6 +150,30 @@ def count_syscalls(path):
     return syscall_func_list, indirect_call_list, wrapper_name_list
 
 
+def compare_diff(list1, list2):
+    unique1 = []
+    unique2 = []
+    for item in list1:
+        if item not in list2:
+            unique1.append(item)
+
+    for item in list2:
+        if item not in list1:
+            unique2.append(item)
+    print(f"unique for list1: len{unique1}, unique2: {len(unique2)}")
+
+
+def compare_syscall_coverage(count_file, hash_file1, hash_file2):
+    matched_func1, matched_indirect1, matched_wrapper1 = check_syscall_coverage(count_file, hash_file1)
+    matched_func2, matched_indirect2, matched_wrapper2 = check_syscall_coverage(count_file, hash_file2)
+    print('unique syscall func:')
+    compare_diff(matched_func1, matched_func2)
+    print('unique syscall indirect func:')
+    compare_diff(matched_indirect1, matched_indirect2)
+    print('unique wrapper func:')
+    compare_diff(matched_wrapper1, matched_wrapper2)
+
+
 def check_syscall_coverage(count_file, hash_file):
     syscall_func_list, indirect_list, wrapper_list = count_syscalls(count_file)
 
@@ -198,6 +222,8 @@ def check_syscall_coverage(count_file, hash_file):
           f'functions(have syscall in their call path) reached')
     print(f'{len(matched_wrapper)}/{len(wrapper_list)} '
           f'({float(len(matched_wrapper)) / float(len(wrapper_list)) * 100.0}%) helper functions reached')
+
+    return matched_func, matched_indirect, matched_wrapper
 
 
 

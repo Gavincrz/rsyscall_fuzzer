@@ -195,9 +195,14 @@ def parse_cmd():
         generate_json(args.generate, config['syscall_config'])
         exit()
 
+    if args.syscount is not None and args.parse is not None and args.generate is not None:
+        compare_syscall_coverage(args.syscount, args.parse, args.generate)
+        exit()
+
     if args.syscount is not None and args.parse is not None:
         check_syscall_coverage(args.syscount, args.parse)
         exit()
+
 
     if args.parse is not None:
         parse_syscov(args.parse, args.target)
