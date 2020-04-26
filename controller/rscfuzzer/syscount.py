@@ -163,9 +163,25 @@ def compare_diff(list1, list2):
     print(f"unique for list1: {len(unique1)} \n{unique1}, unique2: {len(unique2)}\n{unique2}")
 
 
+def check_hash_tgkill(hash_file):
+
+    file = open(hash_file, 'rb')
+    hash_dict = pickle.load(file)
+    file.close()
+    syscall_list = set()
+    for key,value in hash_dict.items():
+        syscall = value[0]
+        # print(syscall)
+        syscall_list.add(syscall)
+        if syscall == 'epoll_wait':
+            print('stck::', value[2])
+    print(syscall_list)
+
+
 def compare_syscall_coverage(count_file, hash_file1, hash_file2):
-    matched_func1, matched_indirect1, matched_wrapper1 = check_syscall_coverage(count_file, hash_file1)
-    matched_func2, matched_indirect2, matched_wrapper2 = check_syscall_coverage(count_file, hash_file2)
+    syscall_func_list, indirect_list, wrapper_list = count_syscalls(count_file)
+    matched_func1, matched_indirect1, matched_wrapper1 = parse_hash(hash_file1, syscall_func_list, indirect_list, wrapper_list)
+    matched_func2, matched_indirect2, matched_wrapper2 = parse_hash(hash_file2, syscall_func_list, indirect_list, wrapper_list)
     print('unique syscall func:')
     compare_diff(matched_func1, matched_func2)
     print('unique syscall indirect func:')
@@ -173,17 +189,14 @@ def compare_syscall_coverage(count_file, hash_file1, hash_file2):
     print('unique wrapper func:')
     compare_diff(matched_wrapper1, matched_wrapper2)
 
-    print('\n\n')
-    print(matched_indirect1, matched_wrapper1)
-
-    print('\n\n')
-    print(matched_indirect2, matched_wrapper2)
+    check_hash_tgkill(hash_file1)
+    print('what\n')
+    check_hash_tgkill(hash_file2)
 
 
 
-def check_syscall_coverage(count_file, hash_file):
-    syscall_func_list, indirect_list, wrapper_list = count_syscalls(count_file)
 
+def parse_hash(hash_file, syscall_func_list, indirect_list, wrapper_list):
     # start parsing hash_file
 
     file = open(hash_file, 'rb')
@@ -230,7 +243,13 @@ def check_syscall_coverage(count_file, hash_file):
     print(f'{len(matched_wrapper)}/{len(wrapper_list)} '
           f'({float(len(matched_wrapper)) / float(len(wrapper_list)) * 100.0}%) helper functions reached')
 
+    print(f"{'memcached_thread_init' in wrapper_list}")
     return matched_func, matched_indirect, matched_wrapper
+
+
+def check_syscall_coverage(count_file, hash_file):
+    syscall_func_list, indirect_list, wrapper_list = count_syscalls(count_file)
+    return parse_hash(hash_file, syscall_func_list, indirect_list, wrapper_list)
 
 
 
