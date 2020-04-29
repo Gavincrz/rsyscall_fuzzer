@@ -443,6 +443,7 @@ class Fuzzer:
 
     def print_differ(self, order, differ, file_name):
         with open(file_name, 'w+') as f:
+            f.write(f"syscall order after {differ}:\n")
             for i in range(differ, len(order)):
                 f.write(f"num: {i}, syscall: {order[i][0]}, hash: {order[i][1]}\n")
                 f.write(f"{order[i][2]}")
@@ -450,9 +451,12 @@ class Fuzzer:
     def compare_syscall_orders(self, orders, tag):
         num_order = len(orders)
         min_len = len(orders[0])
+        len_differ = False
         for i in range(0, num_order):
             length = len(orders[i])
             log.info(f"iteration {i}: {length} syscalls")
+            if length != min_len:
+                len_differ = True
             min_len = min(min_len, length)
         differ = -1
         for i in range(0, min_len):
@@ -467,13 +471,11 @@ class Fuzzer:
                     print(f'order {j}')
                     print(orders[j][i])
                 break
-        # print following syscalls
-        if differ > 0:
+        # print following syscalls, also print if length not match
+        if differ > 0 or len_differ:
             for i in range(num_order):
                 log.info(f'differ syscalls in iteration {i}')
                 self.print_differ(orders[i], differ, f'differ/{self.target_name}_{tag}_{i}')
-
-
 
     def check_syscall_order(self):
         log.info(f"check syscall order, run the vanila version three times")
