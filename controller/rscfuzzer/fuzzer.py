@@ -493,7 +493,7 @@ class Fuzzer:
                 log.info(f"syscall order after client")
                 self.clear_hash()
                 self.run_interceptor_vanilla(False, client)
-                syscall_orders.append(self.parse_syscall_order())
+                syscall_orders.append(self.parse_syscall_order(False))
             self.compare_syscall_orders(syscall_orders, 'c')
 
 
