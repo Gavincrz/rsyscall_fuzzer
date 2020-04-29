@@ -419,8 +419,8 @@ class Fuzzer:
     def print_differ(self, order, differ, file_name):
         with open(file_name, 'w+') as f:
             for i in range(differ, len(order)):
-                f.write(f"num: {i}, syscall: {order[0]}, hash: {order[1]}\n")
-                f.write(f"{order[1]}")
+                f.write(f"num: {i}, syscall: {order[i][0]}, hash: {order[i][1]}\n")
+                f.write(f"{order[i][2]}")
 
     def compare_syscall_orders(self, orders, tag):
         num_order = len(orders)
