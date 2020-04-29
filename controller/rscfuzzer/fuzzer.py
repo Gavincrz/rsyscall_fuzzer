@@ -416,13 +416,13 @@ class Fuzzer:
                 return False
         return True
 
-    def print_differ(self, order, differ):
-        print_str = ''
-        for i in range(differ, len(order)):
-            print_str = f"{print_str}{i}: {order[0]}: {order[1]}: \n{order[2]}\n"
-        log.info(print_str)
+    def print_differ(self, order, differ, file_name):
+        with open(file_name, 'w+') as f:
+            for i in range(differ, len(order)):
+                f.write(f"num: {i}, syscall: {order[0]}, hash: {order[1]}\n")
+                f.write(f"{order[1]}")
 
-    def compare_syscall_orders(self, orders):
+    def compare_syscall_orders(self, orders, tag):
         num_order = len(orders)
         min_len = len(orders[0])
         for i in range(0, num_order):
@@ -438,12 +438,15 @@ class Fuzzer:
             if not equal:
                 log.info(f'order differ from {i}th syscall')
                 differ = i
+                for j in range(0, num_order):
+                    print(f'order {j}')
+                    print(orders[j][i])
                 break
         # print following syscalls
         if differ > 0:
             for i in range(num_order):
                 log.info(f'differ syscalls in iteration {i}')
-                self.print_differ(orders[i], differ)
+                self.print_differ(orders[i], differ, f'differ/{self.target_name}_{tag}_{i}')
 
 
 
@@ -456,7 +459,7 @@ class Fuzzer:
             self.clear_hash()
             self.run_interceptor_vanilla(True, None)
             syscall_orders.append(self.parse_syscall_order())
-        self.compare_syscall_orders(syscall_orders)
+        self.compare_syscall_orders(syscall_orders, 'v')
 
         syscall_orders = []
         for client in self.target.get("clients"):
@@ -466,7 +469,7 @@ class Fuzzer:
                 self.clear_hash()
                 self.run_interceptor_vanilla(False, client)
                 syscall_orders.append(self.parse_syscall_order())
-            self.compare_syscall_orders(syscall_orders)
+            self.compare_syscall_orders(syscall_orders, 'c')
 
 
 
