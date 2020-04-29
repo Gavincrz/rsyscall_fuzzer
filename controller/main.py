@@ -144,6 +144,12 @@ def parse_cmd():
         action="store_const", dest="test", const=True, default=False,
     )
 
+    parser.add_argument(
+        "-r",
+        help="check if the syscall order is stable",
+        action="store_const", dest="order", const=True, default=False,
+    )
+
     parser.add_argument("-u", "--syscount", metavar="FILE",
                         help="Set compile file", default=None)
 
@@ -211,6 +217,9 @@ def parse_cmd():
 
     # create and run the fuzzer
     sc_fuzzer = Fuzzer(config, args.target, args.skip)
+    if args.order:
+        sc_fuzzer.check_syscall_order()
+        exit()
     sc_fuzzer.run()
 
 

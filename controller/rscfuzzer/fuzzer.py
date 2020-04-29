@@ -210,6 +210,22 @@ class Fuzzer:
             except:
                 pass
 
+    def parse_syscall_order(self):
+        syscall_order = []
+        with open(self.hash_file) as fp:
+            lines = fp.readlines()
+            for line in lines:
+                syscall, hash, stack = self.parse_syscall_stack(line)
+                syscall_order.append(syscall, hash, stack)
+        return syscall_order
+
+    def parse_syscall_stack(self, line):
+        temp = line.split(': ')
+        syscall = temp[0]
+        hash = int(temp[1])
+        stack = temp[2].replace('%', '\n')
+        return syscall, hash, stack
+
     def parse_hash(self, vanilla=True):
         # hardcode filename
         with open(self.hash_file) as fp:
@@ -218,10 +234,7 @@ class Fuzzer:
             if not vanilla:
                 dict = self.fuzz_cov
             for line in lines:
-                temp = line.split(': ')
-                syscall = temp[0]
-                hash = int(temp[1])
-                stack = temp[2].replace('%', '\n')
+                syscall, hash, stack = self.parse_syscall_stack(line)
                 pair = dict.get(hash)
                 if pair is None:
                     # if not vanilla:
@@ -388,6 +401,74 @@ class Fuzzer:
         # store the cov file for fuzz
         self.store_cov_info("fuzz")
         self.clear_cov()
+
+    def compare_syscall(self, one_syscall):
+        # compare with the first run value
+        standard = one_syscall[0]
+        for i in range(1, len(one_syscall)):
+            if one_syscall[i][0] != standard[0]:
+                return False
+            if one_syscall[i][1] != standard[1]:
+                return False
+            if one_syscall[i][2] != standard[2]:
+                return False
+        return True
+
+    def print_differ(self, order, differ):
+        print_str = ''
+        for i in range(differ, len(order)):
+            print_str = f"{print_str}{i}: {order[0]}: {order[1]}: \n{order[2]}\n"
+        log.info(print_str)
+
+    def compare_syscall_orders(self, orders):
+        num_order = len(orders)
+        min_len = len(orders[0])
+        for i in range(0, num_order):
+            length = len(orders[i])
+            log.info(f"iteration {i}: {length} syscalls")
+            min_len = min(min_len, length)
+        differ = -1
+        for i in range(0, min_len):
+            one_syscall = []
+            for j in range(0, num_order):
+                one_syscall.append(orders[j][i])
+            equal = self.compare_syscall(one_syscall)
+            if not equal:
+                log.info(f'order differ from {i}th syscall')
+                differ = i
+                break
+        # print following syscalls
+        if differ > 0:
+            for i in range(num_order):
+                log.info(f'differ syscalls in iteration {i}')
+                self.print_differ(orders[i], differ)
+
+
+
+    def check_syscall_order(self):
+        log.info(f"check syscall order, run the vanila version three times")
+
+        syscall_orders = []
+        for i in range(0, 3):
+            log.info(f"syscall order before client")
+            self.clear_hash()
+            self.run_interceptor_vanilla(True, None)
+            syscall_orders.append(self.parse_syscall_order())
+        self.compare_syscall_orders(syscall_orders)
+
+        syscall_orders = []
+        for client in self.target.get("clients"):
+            log.info(f"syscall order after client")
+            for i in range(0, 3):
+                log.info(f"syscall order after client")
+                self.clear_hash()
+                self.run_interceptor_vanilla(False, client)
+                syscall_orders.append(self.parse_syscall_order())
+            self.compare_syscall_orders(syscall_orders)
+
+
+
+        pass
 
     def run_sc_cov(self):
         log.info(f"running sc cov test")
