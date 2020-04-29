@@ -212,13 +212,38 @@ class Fuzzer:
             except:
                 pass
 
-    def parse_syscall_order(self):
+    def parse_syscall_order(self, before=True):
         syscall_order = []
+        poll_found = False
+        # find continous poll syscall
+        poll_start = False
+        poll_count = 0
         with open(self.hash_file) as fp:
             lines = fp.readlines()
             for line in lines:
                 syscall, hash, stack = self.parse_syscall_stack(line)
-                syscall_order.append((syscall, hash, stack))
+                if before:
+                    syscall_order.append((syscall, hash, stack))
+                else:
+                    # only add syscall after poll found
+                    if not poll_found:
+                        if syscall == self.poll:
+                            poll_found = True
+                            poll_start = True
+                            poll_count = 1
+                            syscall_order.append((syscall, hash, stack))
+                    else:
+                        if poll_start:
+                            # neglect multiple poll syscall
+                            if syscall != self.poll:
+                                poll_count += 1
+                            else:
+                                poll_start = False
+                                syscall_order.append((syscall, hash, stack))
+                        else:
+                            syscall_order.append((syscall, hash, stack))
+
+
         return syscall_order
 
     def parse_syscall_stack(self, line):
