@@ -106,6 +106,8 @@ class Fuzzer:
         self.core_dir = self.config.get("core_dir", "cores")
         self.store_core_dir = self.config.get("store_core_dir", "stored_cores")
         self.binary = self.command.split(' ')[0].split('/')[-1]
+        self.executable = os.path.abspath(self.command.split(' ')[0])
+        print(f"executable abs path is {self.executable}")
         self.core_dir = os.path.join(self.core_dir, self.binary)
         signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
         # mkdir if necessary
@@ -295,7 +297,8 @@ class Fuzzer:
                 self.srv_p = None
         for proc in psutil.process_iter():
             # check whether the process name matches
-            if self.binary in proc.name():
+            print(proc.name)
+            if self.executable in proc.exe():
                 print("found not killed process, kill it")
                 proc.kill()
 
