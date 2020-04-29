@@ -218,7 +218,7 @@ class Fuzzer:
             lines = fp.readlines()
             for line in lines:
                 syscall, hash, stack = self.parse_syscall_stack(line)
-                syscall_order.append(syscall, hash, stack)
+                syscall_order.append((syscall, hash, stack))
         return syscall_order
 
     def parse_syscall_stack(self, line):
@@ -297,7 +297,6 @@ class Fuzzer:
                 self.srv_p = None
         for proc in psutil.process_iter():
             # check whether the process name matches
-            print(proc.name)
             if self.executable in proc.exe():
                 print("found not killed process, kill it")
                 proc.kill()
