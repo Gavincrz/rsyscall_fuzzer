@@ -472,7 +472,10 @@ class Fuzzer:
                     print(orders[j][i])
                 break
         # print following syscalls, also print if length not match
-        if differ > 0 or len_differ:
+        if differ < 0 and len_differ:
+            differ = min_len
+            print(f'no order different before minlen, but length differnt, min_len = {min_len}')
+        if differ > 0:
             for i in range(num_order):
                 log.info(f'differ syscalls in iteration {i}')
                 self.print_differ(orders[i], differ, f'differ/{self.target_name}_{tag}_{i}')
