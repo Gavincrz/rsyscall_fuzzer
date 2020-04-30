@@ -448,6 +448,28 @@ class Fuzzer:
                 f.write(f"num: {i}, syscall: {order[i][0]}, hash: {order[i][1]}\n")
                 f.write(f"{order[i][2]}")
 
+    def print_diff(self, diff_set, total_dict):
+        print('printing diffset: ')
+        for hash in diff_set:
+            print(total_dict[hash])
+
+    def check_new_syscall(self, orders):
+        total_dict = {}
+        sets = [set(), set(), set()]
+        for i in range(len(orders)):
+            for item in orders[i]:
+                sets[i].add(item[1])
+                total_dict[item[1]] = (item[0], item[2])
+        differ_01 = sets[0] - sets[1]
+        differ_10 = sets[1] - sets[0]
+        differ_02 = sets[0] - sets[2]
+        differ_20 = sets[2] - sets[1]
+        self.print_diff(differ_01, total_dict)
+        self.print_diff(differ_10, total_dict)
+        self.print_diff(differ_02, total_dict)
+        self.print_diff(differ_20, total_dict)
+
+
     def compare_syscall_orders(self, orders, tag):
         num_order = len(orders)
         min_len = len(orders[0])
@@ -490,6 +512,7 @@ class Fuzzer:
             self.run_interceptor_vanilla(True, None)
             syscall_orders.append(self.parse_syscall_order())
         self.compare_syscall_orders(syscall_orders, 'v')
+        self.check_new_syscall(syscall_orders)
 
         syscall_orders = []
         for client in self.target.get("clients"):
@@ -500,7 +523,7 @@ class Fuzzer:
                 self.run_interceptor_vanilla(False, client)
                 syscall_orders.append(self.parse_syscall_order(False))
             self.compare_syscall_orders(syscall_orders, 'c')
-
+            self.check_new_syscall(syscall_orders)
 
 
         pass
