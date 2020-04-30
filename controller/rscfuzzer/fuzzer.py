@@ -527,9 +527,9 @@ class Fuzzer:
                 syscall_orders.append(self.parse_syscall_order(False))
             self.compare_syscall_orders(syscall_orders, 'c')
             self.check_new_syscall(syscall_orders)
-            self.print_differ(syscall_orders[0], 0, f'differ/{self.target_name}_allv_0')
-            self.print_differ(syscall_orders[1], 0, f'differ/{self.target_name}_allv_1')
-            self.print_differ(syscall_orders[1], 0, f'differ/{self.target_name}_allv_2')
+            self.print_differ(syscall_orders[0], 0, f'differ/{self.target_name}_allc_0')
+            self.print_differ(syscall_orders[1], 0, f'differ/{self.target_name}_allc_1')
+            self.print_differ(syscall_orders[1], 0, f'differ/{self.target_name}_allc_2')
 
 
         pass
