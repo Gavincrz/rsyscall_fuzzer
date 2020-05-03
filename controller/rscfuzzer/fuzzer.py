@@ -221,8 +221,8 @@ class Fuzzer:
         self.sc_cov = False
         start = time.time()
         for i in range(100):
-            ret = self.run_interceptor_vanilla(True, None)
-            print(ret, end='')
+            self.run_interceptor_vanilla(True, None)
+            print(self.retcode, end='', flush=True)
         end = time.time()
 
         print(f'run time of vanilla: {end - start} ')
@@ -230,8 +230,8 @@ class Fuzzer:
         self.sc_cov = True
         start = time.time()
         for i in range(100):
-            ret = self.run_interceptor_vanilla(True, None)
-            print(ret, end='')
+            self.run_interceptor_vanilla(True, None)
+            print(self.retcode, end='', flush=True)
         end = time.time()
 
         print(f'run time of vanilla + record stack: {end - start}')
