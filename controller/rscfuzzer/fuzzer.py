@@ -188,6 +188,10 @@ class Fuzzer:
         print("supported syscalls: ")
         print(self.supported)
 
+
+        # measurement option:
+        self.measurement = False
+
     def setup_env_var(self):
         env_dict = self.target.get("env")
         if env_dict is not None:
@@ -211,6 +215,26 @@ class Fuzzer:
                 os.remove(self.hash_file)
             except:
                 pass
+
+    def run_measurement(self):
+        # run the vanilla version first
+        self.sc_cov = False
+        start = time.time()
+        for i in range(100):
+            self.run_interceptor_vanilla(True, None)
+        end = time.time()
+
+        print(f'run time of vanilla: {end - start} ')
+
+        self.sc_cov = True
+        start = time.time()
+        for i in range(100):
+            self.run_interceptor_vanilla(True, None)
+        end = time.time()
+
+        print(f'run time of vanilla + record stack: {end - start}')
+        
+        pass
 
     def parse_syscall_order(self, before=True):
         syscall_order = []

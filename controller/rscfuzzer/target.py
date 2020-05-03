@@ -443,7 +443,7 @@ targets = {
          },
 
     "git_sccov":
-        {"command": "/home/gavin/git-2.18.0/git clone git@github.com:Gavincrz/FileTransfer.git /home/gavin/gittest/",
+        {"command": "/home/gavin/git-2.18.0/git clone gavin@localhost:gittest_remote.git /home/gavin/gittest/",
          "server": False,
          "poll": None,
          "clients": [],

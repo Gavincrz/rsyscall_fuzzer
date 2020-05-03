@@ -186,11 +186,15 @@ def parse_cmd():
     logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, stream_handler])
 
     if args.test:
-        target = targets[args.target]
-        clients = target.get("clients")
-        if clients is not None and len(clients) > 0:
-            ret = clients[0]()
-            print(ret)
+        # microbenchmark
+        sc_fuzzer = Fuzzer(config, args.target, args.skip)
+        sc_fuzzer.measurement = True
+        sc_fuzzer.run_measurement()
+        # target = targets[args.target]
+        # clients = target.get("clients")
+        # if clients is not None and len(clients) > 0:
+        #     ret = clients[0]()
+        #     print(ret)
         exit()
 
     if args.syscount is not None and args.parse is None:
