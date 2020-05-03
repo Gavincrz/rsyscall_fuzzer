@@ -240,7 +240,12 @@ class Fuzzer:
         self.not_write = True
         start = time.time()
         for i in range(100):
+            self.clear_hash()
             self.run_interceptor_vanilla(True, None)
+            try:
+                print(os.path.getsize(self.hash_file), end=' ')
+            except OSError as E:
+                pass
             print(self.retcode, end='', flush=True)
         end = time.time()
         print(f'run time of vanilla + record stack: {end - start}')
@@ -249,7 +254,12 @@ class Fuzzer:
         self.not_write = False
         start = time.time()
         for i in range(100):
+            self.clear_hash()
             self.run_interceptor_vanilla(True, None)
+            try:
+                print(os.path.getsize(self.hash_file), end=' ')
+            except OSError as E:
+                pass
             print(self.retcode, end='', flush=True)
         end = time.time()
         print(f'run time of vanilla + record stack: {end - start}')
