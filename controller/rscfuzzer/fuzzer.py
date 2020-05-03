@@ -188,10 +188,17 @@ class Fuzzer:
         print("supported syscalls: ")
         print(self.supported)
 
-
         # measurement option:
         self.measurement = False
         self.not_write = False
+        self.accept_time = 0
+        self.client_time = 0
+        self.after_time = 0
+
+    def clear_time_measurement(self):
+        self.accept_time = 0
+        self.client_time = 0
+        self.after_time = 0
 
     def setup_env_var(self):
         env_dict = self.target.get("env")
@@ -220,49 +227,91 @@ class Fuzzer:
     def run_measurement(self):
         # run the vanilla version first
         self.sc_cov = False
+        if not self.server:
+            start = time.time()
+            for i in range(100):
+                self.run_interceptor_vanilla(True, None, True)
+                print(self.retcode, end='', flush=True)
+            end = time.time()
+            print(f'run time of origin: {end - start} ')
 
         start = time.time()
-        for i in range(100):
-            self.run_interceptor_vanilla(True, None, True)
-            print(self.retcode, end='', flush=True)
-        end = time.time()
-        print(f'run time of origin: {end - start} ')
-
-        start = time.time()
+        self.clear_time_measurement()
         for i in range(100):
             self.run_interceptor_vanilla(True, None)
             print(self.retcode, end='', flush=True)
         end = time.time()
 
-        print(f'run time of vanilla: {end - start} ')
+        print(f'run time of vanilla no client: {end - start}, after time: {self.after_time}, '
+              f'acccept_time: {self.accept_time}')
 
         self.sc_cov = True
         self.not_write = True
         start = time.time()
+        self.clear_time_measurement()
         for i in range(100):
             self.clear_hash()
             self.run_interceptor_vanilla(True, None)
-            try:
-                print(os.path.getsize(self.hash_file), end=' ')
-            except OSError as E:
-                pass
             print(self.retcode, end='', flush=True)
         end = time.time()
-        print(f'run time of vanilla + record stack: {end - start}')
+        print(f'run time of vanilla + trace stack: {end - start}, after time: {self.after_time}, '
+              f'acccept_time: {self.accept_time}')
 
         self.sc_cov = True
         self.not_write = False
+        self.clear_time_measurement()
         start = time.time()
         for i in range(100):
             self.clear_hash()
             self.run_interceptor_vanilla(True, None)
             try:
                 print(os.path.getsize(self.hash_file), end=' ')
-            except OSError as E:
+            except OSError:
                 pass
             print(self.retcode, end='', flush=True)
         end = time.time()
-        print(f'run time of vanilla + record stack: {end - start}')
+        print(f'run time of vanilla + record stack: {end - start}, after time: {self.after_time} '
+              f',acccept_time: {self.accept_time}')
+
+        if self.server:
+            # test with client
+            self.sc_cov = False
+            self.clear_time_measurement()
+            start = time.time()
+            for i in range(100):
+                self.run_interceptor_vanilla(False, self.target.get("clients")[0])
+                print(self.retcode, end='', flush=True)
+            end = time.time()
+            print(f"run time of vanilla(client): {end - start}, "
+                  f"client time {self.client_time}, "
+                  f"acccept_time: {self.accept_time},"
+                  f"aftertime: {self.after_time}")
+
+            self.sc_cov = True
+            self.not_write = True
+            self.clear_time_measurement()
+            start = time.time()
+            for i in range(100):
+                self.run_interceptor_vanilla(False, self.target.get("clients")[0])
+                print(self.retcode, end='', flush=True)
+            end = time.time()
+            print(f"run time of vanilla(client) trace stack: {end - start}, "
+                  f"client time {self.client_time}, "
+                  f"acccept_time: {self.accept_time},"
+                  f"aftertime: {self.after_time}")
+
+            self.sc_cov = True
+            self.not_write = True
+            self.clear_time_measurement()
+            start = time.time()
+            for i in range(100):
+                self.run_interceptor_vanilla(False, self.target.get("clients")[0])
+                print(self.retcode, end='', flush=True)
+            end = time.time()
+            print(f"run time of vanilla(client) record stack: {end - start}, "
+                  f"client time {self.client_time}, "
+                  f"acccept_time: {self.accept_time},"
+                  f"aftertime: {self.after_time}")
 
 
     def parse_syscall_order(self, before=True):
@@ -714,7 +763,10 @@ class Fuzzer:
             # ignore signal
             # signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
             # Wait for sigmax-7, or acknowledge if it is already pending
+            start = time.time()
             ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
+            end = time.time()
+            self.accept_time += (end - start)
             signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
             if ret:
                 logging.debug(f"sig {const.ACCEPT_SIG} received!")
@@ -727,7 +779,10 @@ class Fuzzer:
                 ret = self.srv_p.poll()
                 if ret is None: # terminate the server and return
                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                    start = time.time()
                     self.srv_p.wait()  # wait until strace properly save the output
+                    end = time.time()
+                    self.after_time += (end-start)
                     log.info("vanilla test before polling success")
                     return 0
                 # server terminate before client, report error
@@ -739,8 +794,13 @@ class Fuzzer:
             if client is None:
                 self.kill_servers()
                 sys.exit("error: client not set when test after polling")
-            time.sleep(const.CLIENT_DELAY)
-            client_ret = client()
+            start = time.time()
+            for j in range(const.CLIENT_RETRY):
+                client_ret = client()
+                if client_ret == 0:
+                    break
+            end = time.time()
+            self.client_time += (end - start)
             if client_ret != 0:
                 self.kill_servers()
                 sys.exit("error: client failed during vanilla run!")
@@ -749,6 +809,7 @@ class Fuzzer:
                 # check if server terminated
                 if self.retcode is not None:
                     # wait for server to terminate
+                    start = time.time()
                     try:
                         retcode = self.srv_p.wait(timeout=self.timeout)  # wait for server to terminate after client
                     except (TimeoutError, subprocess.TimeoutExpired):
@@ -760,10 +821,16 @@ class Fuzzer:
                             sys.exit(f"server terminate after client, expect retcode:{self.retcode}, actual: {retcode}")
                         else:
                             return 0
+                    end = time.time()
+                    self.after_time += (end - start)
+
                 retcode = self.srv_p.poll()
                 if retcode is None:
                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                    start = time.time()
                     self.srv_p.wait()  # wait until strace properly save the output
+                    end = time.time()
+                    self.after_time += (end-start)
                     log.info(f"server still running after client, terminate the server")
 
         # for non-server target
@@ -911,9 +978,11 @@ class Fuzzer:
                                     failed_iters.append((i, 'exit_b'))
                                     should_increase = True
                             else:  # after polling, connect a client
-                                time.sleep(const.CLIENT_DELAY)
                                 log.debug("connecting client ...")
-                                client_ret = client()
+                                for j in range(const.CLIENT_RETRY):
+                                    client_ret = client()
+                                    if client_ret == 0:
+                                        break
                                 log.debug(f"client ret code {client_ret}")
                                 if client_ret != 0:
                                     log.debug(f"client failed, kill server, wait ... ")

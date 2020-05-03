@@ -2,7 +2,7 @@ import signal
 import re
 
 ACCEPT_SIG = int(signal.SIGRTMAX-7)
-CLIENT_DELAY = 1
+CLIENT_RETRY = 2
 
 ''' gdb patterns '''
 top_stack_pattern = re.compile("#.*")
