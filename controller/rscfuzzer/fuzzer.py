@@ -191,6 +191,7 @@ class Fuzzer:
 
         # measurement option:
         self.measurement = False
+        self.not_write = False
 
     def setup_env_var(self):
         env_dict = self.target.get("env")
@@ -225,6 +226,7 @@ class Fuzzer:
             self.run_interceptor_vanilla(True, None, True)
             print(self.retcode, end='', flush=True)
         end = time.time()
+        print(f'run time of origin: {end - start} ')
 
         start = time.time()
         for i in range(100):
@@ -235,14 +237,23 @@ class Fuzzer:
         print(f'run time of vanilla: {end - start} ')
 
         self.sc_cov = True
+        self.not_write = True
         start = time.time()
         for i in range(100):
             self.run_interceptor_vanilla(True, None)
             print(self.retcode, end='', flush=True)
         end = time.time()
-
         print(f'run time of vanilla + record stack: {end - start}')
-        pass
+
+        self.sc_cov = True
+        self.not_write = False
+        start = time.time()
+        for i in range(100):
+            self.run_interceptor_vanilla(True, None)
+            print(self.retcode, end='', flush=True)
+        end = time.time()
+        print(f'run time of vanilla + record stack: {end - start}')
+
 
     def parse_syscall_order(self, before=True):
         syscall_order = []
@@ -663,6 +674,8 @@ class Fuzzer:
 
         if self.sc_cov:
             strace_cmd = f"{strace_cmd} -n {self.hash_file}"
+            if self.not_write:
+                strace_cmd = f"{strace_cmd} -N"
 
         strace_cmd = f"{strace_cmd} {self.command}"
 
