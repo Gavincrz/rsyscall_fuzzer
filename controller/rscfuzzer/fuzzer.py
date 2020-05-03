@@ -233,7 +233,6 @@ class Fuzzer:
         end = time.time()
 
         print(f'run time of vanilla + record stack: {end - start}')
-        
         pass
 
     def parse_syscall_order(self, before=True):
