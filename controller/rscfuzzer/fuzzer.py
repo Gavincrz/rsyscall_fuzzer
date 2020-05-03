@@ -219,6 +219,13 @@ class Fuzzer:
     def run_measurement(self):
         # run the vanilla version first
         self.sc_cov = False
+
+        start = time.time()
+        for i in range(100):
+            self.run_interceptor_vanilla(True, None, True)
+            print(self.retcode, end='', flush=True)
+        end = time.time()
+
         start = time.time()
         for i in range(100):
             self.run_interceptor_vanilla(True, None)
@@ -641,7 +648,7 @@ class Fuzzer:
         # run the test version
         self.run_interceptor_fuzz(before_poll, client)
 
-    def run_interceptor_vanilla(self, before_poll=True, client=None):
+    def run_interceptor_vanilla(self, before_poll=True, client=None, origin=False):
         if self.setup_func is not None:
             self.setup_func()
         # construct the strace command
@@ -659,6 +666,8 @@ class Fuzzer:
 
         strace_cmd = f"{strace_cmd} {self.command}"
 
+        if origin:
+            strace_cmd = self.command
         if self.sudo:
             strace_cmd = f"sudo -E {strace_cmd}"
         # strace_cmd = f"sudo -E /home/gavin/strace/strace -ff -j epoll_wait -J {cur_pid} -G -B 644 -K /home/gavin/rsyscall_fuzzer/controller/syscall.json -L /home/gavin/rsyscall_fuzzer/controller/record.txt -n syscov_memcached.txt /home/gavin/memcached-1.5.20/memcached -p 11111 -U 11111 -u gavin"
