@@ -231,7 +231,6 @@ class Fuzzer:
             start = time.time()
             for i in range(100):
                 self.run_interceptor_vanilla(True, None, True)
-                print(self.retcode, end='', flush=True)
             end = time.time()
             print(f'run time of origin: {end - start} ')
 
@@ -239,7 +238,6 @@ class Fuzzer:
         self.clear_time_measurement()
         for i in range(100):
             self.run_interceptor_vanilla(True, None)
-            print(self.retcode, end='', flush=True)
         end = time.time()
 
         print(f'run time of vanilla no client: {end - start}, after time: {self.after_time}, '
@@ -252,7 +250,6 @@ class Fuzzer:
         for i in range(100):
             self.clear_hash()
             self.run_interceptor_vanilla(True, None)
-            print(self.retcode, end='', flush=True)
         end = time.time()
         print(f'run time of vanilla + trace stack: {end - start}, after time: {self.after_time}, '
               f'acccept_time: {self.accept_time}')
@@ -268,7 +265,6 @@ class Fuzzer:
                 print(os.path.getsize(self.hash_file), end=' ')
             except OSError:
                 pass
-            print(self.retcode, end='', flush=True)
         end = time.time()
         print(f'run time of vanilla + record stack: {end - start}, after time: {self.after_time} '
               f',acccept_time: {self.accept_time}')
@@ -280,7 +276,6 @@ class Fuzzer:
             start = time.time()
             for i in range(100):
                 self.run_interceptor_vanilla(False, self.target.get("clients")[0])
-                print(self.retcode, end='', flush=True)
             end = time.time()
             print(f"run time of vanilla(client): {end - start}, "
                   f"client time {self.client_time}, "
@@ -293,7 +288,10 @@ class Fuzzer:
             start = time.time()
             for i in range(100):
                 self.run_interceptor_vanilla(False, self.target.get("clients")[0])
-                print(self.retcode, end='', flush=True)
+                try:
+                    print(os.path.getsize(self.hash_file), end=' ')
+                except OSError:
+                    pass
             end = time.time()
             print(f"run time of vanilla(client) trace stack: {end - start}, "
                   f"client time {self.client_time}, "
@@ -301,12 +299,11 @@ class Fuzzer:
                   f"aftertime: {self.after_time}")
 
             self.sc_cov = True
-            self.not_write = True
+            self.not_write = False
             self.clear_time_measurement()
             start = time.time()
             for i in range(100):
                 self.run_interceptor_vanilla(False, self.target.get("clients")[0])
-                print(self.retcode, end='', flush=True)
             end = time.time()
             print(f"run time of vanilla(client) record stack: {end - start}, "
                   f"client time {self.client_time}, "
