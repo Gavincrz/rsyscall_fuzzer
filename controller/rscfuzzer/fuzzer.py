@@ -804,6 +804,8 @@ class Fuzzer:
                 client_ret = client()
                 if client_ret == 0:
                     break
+                else:
+                    print(f'retry: {j}')
             end = time.time()
             self.client_time += (end - start)
             if client_ret != 0:
