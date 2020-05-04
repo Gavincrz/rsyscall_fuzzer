@@ -584,6 +584,7 @@ targets = {
          "poll_time": 3,
          "sc_cov": True,
          "hash_file": "syscov_memcached.txt",
-         "cov": False
+         "cov": False,
+         "accept_hash": 3234396722
          },
 }

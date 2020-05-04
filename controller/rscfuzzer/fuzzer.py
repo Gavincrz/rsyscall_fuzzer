@@ -195,6 +195,8 @@ class Fuzzer:
         self.client_time = 0
         self.after_time = 0
 
+        self.accept_hash = self.target.get("accept_hash", -1)
+
     def clear_time_measurement(self):
         self.accept_time = 0
         self.client_time = 0
@@ -274,18 +276,19 @@ class Fuzzer:
               f',acccept_time: {self.accept_time}')
 
         if self.server:
-            # test with client
-            self.sc_cov = False
-            self.clear_time_measurement()
-            start = time.time()
-            for i in range(100):
-                self.run_interceptor_vanilla(False, self.target.get("clients")[0])
-                print(self.retcode, end='', flush=True)
-            end = time.time()
-            print(f"\nrun time of vanilla(client): {end - start}, "
-                  f"client time {self.client_time}, "
-                  f"acccept_time: {self.accept_time},"
-                  f"aftertime: {self.after_time}")
+            if self.accept_hash == -1:
+                # test with client
+                self.sc_cov = False
+                self.clear_time_measurement()
+                start = time.time()
+                for i in range(100):
+                    self.run_interceptor_vanilla(False, self.target.get("clients")[0])
+                    print(self.retcode, end='', flush=True)
+                end = time.time()
+                print(f"\nrun time of vanilla(client): {end - start}, "
+                      f"client time {self.client_time}, "
+                      f"acccept_time: {self.accept_time},"
+                      f"aftertime: {self.after_time}")
 
             self.sc_cov = True
             self.not_write = True
@@ -740,6 +743,8 @@ class Fuzzer:
             strace_cmd = f"{strace_cmd} -n {self.hash_file}"
             if self.not_write:
                 strace_cmd = f"{strace_cmd} -N"
+            if self.accept_hash > 0:
+                strace_cmd = f"{strace_cmd} -Q {self.accept_hash}"
 
         strace_cmd = f"{strace_cmd} {self.command}"
 
@@ -888,6 +893,9 @@ class Fuzzer:
 
             if self.sc_cov:
                 strace_cmd = f"{strace_cmd} -n {self.hash_file}"
+                if self.accept_hash > 0:
+                    strace_cmd = f"{strace_cmd} -Q {self.accept_hash}"
+
 
             strace_cmd = f"{strace_cmd} {self.command}"
 
