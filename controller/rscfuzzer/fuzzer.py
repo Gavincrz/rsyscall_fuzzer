@@ -305,6 +305,7 @@ class Fuzzer:
             self.clear_time_measurement()
             start = time.time()
             for i in range(100):
+                self.clear_hash()
                 self.run_interceptor_vanilla(False, self.target.get("clients")[0])
                 print(self.retcode, end='', flush=True)
                 try:
