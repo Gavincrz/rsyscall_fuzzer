@@ -289,7 +289,7 @@ class Fuzzer:
                 pass
             print(self.retcode, end='', flush=True)
         end = time.time()
-        print(f'\nrun time of vanilla + record stack: {end - start}, after time: {self.after_time} '
+        print(f'\nrun time of vanilla + print trace: {end - start}, after time: {self.after_time} '
               f',acccept_time: {self.accept_time}')
 
         self.print_trace = False
