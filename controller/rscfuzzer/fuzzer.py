@@ -341,6 +341,25 @@ class Fuzzer:
                   f"acccept_time: {self.accept_time},"
                   f"aftertime: {self.after_time}")
 
+            self.sc_cov = False
+            self.not_write = False
+            self.print_trace = True
+            self.clear_time_measurement()
+            start = time.time()
+            for i in range(100):
+                self.clear_hash()
+                self.run_interceptor_vanilla(False, self.target.get("clients")[0])
+                print(self.retcode, end='', flush=True)
+                try:
+                    print(os.path.getsize(self.hash_file), end=' ')
+                except OSError:
+                    pass
+            end = time.time()
+            print(f"\nrun time of vanilla(client) print stack: {end - start}, "
+                  f"client time {self.client_time}, "
+                  f"acccept_time: {self.accept_time},"
+                  f"aftertime: {self.after_time}")
+
 
     def parse_syscall_order(self, before=True):
         syscall_order = []
