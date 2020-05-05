@@ -191,6 +191,7 @@ class Fuzzer:
         # measurement option:
         self.measurement = False
         self.not_write = False
+        self.print_trace = False
         self.accept_time = 0
         self.client_time = 0
         self.after_time = 0
