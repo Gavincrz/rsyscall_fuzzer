@@ -275,6 +275,24 @@ class Fuzzer:
         print(f'\nrun time of vanilla + record stack: {end - start}, after time: {self.after_time} '
               f',acccept_time: {self.accept_time}')
 
+        self.sc_cov = False
+        self.not_write = False
+        self.print_trace = True
+        self.clear_time_measurement()
+        start = time.time()
+        for i in range(100):
+            self.clear_hash()
+            self.run_interceptor_vanilla(True, None)
+            try:
+                print(os.path.getsize(self.hash_file), end=' ')
+            except OSError:
+                pass
+            print(self.retcode, end='', flush=True)
+        end = time.time()
+        print(f'\nrun time of vanilla + record stack: {end - start}, after time: {self.after_time} '
+              f',acccept_time: {self.accept_time}')
+
+        self.print_trace = False
         if self.server:
             if self.accept_hash == -1:
                 # test with client
@@ -305,6 +323,7 @@ class Fuzzer:
 
             self.sc_cov = True
             self.not_write = False
+            self.print_trace = False
             self.clear_time_measurement()
             start = time.time()
             for i in range(100):
@@ -738,8 +757,9 @@ class Fuzzer:
         # unnecessary for vanilla run
         # if not before_poll and client is not None:
         #     strace_cmd = f"{strace_cmd} -l"
-
-        if self.sc_cov:
+        if self.print_trace:
+            strace_cmd = f"{strace_cmd} -k"
+        elif self.sc_cov:
             strace_cmd = f"{strace_cmd} -n {self.hash_file}"
             if self.not_write:
                 strace_cmd = f"{strace_cmd} -N"
