@@ -228,7 +228,7 @@ class Fuzzer:
             except:
                 pass
 
-    def run_hundred_measurement(self, client, before_poll, indicator):
+    def run_hundred_measurement(self, before_poll, client, indicator):
         self.clear_time_measurement()
         start = time.time()
         for i in range(100):
