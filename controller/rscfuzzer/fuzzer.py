@@ -272,8 +272,13 @@ class Fuzzer:
         self.proc_unwind = True
         self.run_hundred_measurement(True, None, "no client record stack (proc unwind)")
 
-        self.print_trace = False
+        self.print_trace = True
+        self.sc_cov = True
+        self.not_write = True
+        self.proc_unwind = False
+        self.run_hundred_measurement(True, None, "no client print stack (ptrace)")
 
+        self.print_trace = False
         if self.server:
             if self.accept_hash == -1:
                 # test with client
@@ -301,6 +306,12 @@ class Fuzzer:
             self.not_write = False
             self.print_trace = False
             self.proc_unwind = True
+            self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(proc)")
+
+            self.print_trace = True
+            self.sc_cov = True
+            self.not_write = True
+            self.proc_unwind = False
             self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(proc)")
 
     def parse_syscall_order(self, before=True):
