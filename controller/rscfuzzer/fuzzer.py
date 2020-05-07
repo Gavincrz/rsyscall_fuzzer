@@ -722,6 +722,8 @@ class Fuzzer:
         if self.print_trace:
             strace_cmd = f"{strace_cmd} -k"
         elif self.sc_cov:
+            if self.proc_unwind:
+                strace_cmd = f"{strace_cmd} -Z"
             strace_cmd = f"{strace_cmd} -n {self.hash_file}"
             if self.not_write:
                 strace_cmd = f"{strace_cmd} -N"
