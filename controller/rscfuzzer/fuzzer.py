@@ -192,6 +192,7 @@ class Fuzzer:
         self.measurement = False
         self.not_write = False
         self.print_trace = False
+        self.proc_unwind = False
         self.accept_time = 0
         self.client_time = 0
         self.after_time = 0
@@ -227,6 +228,17 @@ class Fuzzer:
             except:
                 pass
 
+    def run_hundred_measurement(self, client, before_poll, indicator):
+        self.clear_time_measurement()
+        start = time.time()
+        for i in range(100):
+            self.run_interceptor_vanilla(before_poll, client)
+            print(self.retcode, end='', flush=True)
+        end = time.time()
+
+        print(f'\nrun time of vanilla {indicator}: {end - start}, after time: {self.after_time}, '
+              f'acccept_time: {self.accept_time}')
+
     def run_measurement(self):
         # run the vanilla version first
         self.sc_cov = False
@@ -238,128 +250,58 @@ class Fuzzer:
             end = time.time()
             print(f'run time of origin: {end - start} ')
 
-        start = time.time()
-        self.clear_time_measurement()
-        for i in range(100):
-            self.run_interceptor_vanilla(True, None)
-            print(self.retcode, end='', flush=True)
-        end = time.time()
-
-        print(f'\nrun time of vanilla no client: {end - start}, after time: {self.after_time}, '
-              f'acccept_time: {self.accept_time}')
+        self.run_hundred_measurement(True, None, "no client strace")
 
         self.sc_cov = True
         self.not_write = True
-        start = time.time()
-        self.clear_time_measurement()
-        for i in range(100):
-            self.clear_hash()
-            self.run_interceptor_vanilla(True, None)
-            print(self.retcode, end='', flush=True)
-        end = time.time()
-        print(f'\nrun time of vanilla + trace stack: {end - start}, after time: {self.after_time}, '
-              f'acccept_time: {self.accept_time}')
+        self.proc_unwind = False
+        self.run_hundred_measurement(True, None, "no client trace stack (ptrace)")
+
+        self.sc_cov = True
+        self.not_write = True
+        self.proc_unwind = True
+        self.run_hundred_measurement(True, None, "no client trace stack (proc unwind)")
 
         self.sc_cov = True
         self.not_write = False
-        self.clear_time_measurement()
-        start = time.time()
-        for i in range(100):
-            self.clear_hash()
-            self.run_interceptor_vanilla(True, None)
-            try:
-                print(os.path.getsize(self.hash_file), end=' ')
-            except OSError:
-                pass
-            print(self.retcode, end='', flush=True)
-        end = time.time()
-        print(f'\nrun time of vanilla + record stack: {end - start}, after time: {self.after_time} '
-              f',acccept_time: {self.accept_time}')
+        self.proc_unwind = False
+        self.run_hundred_measurement(True, None, "no client record stack (ptrace)")
 
-        self.sc_cov = False
+        self.sc_cov = True
         self.not_write = False
-        self.print_trace = True
-        self.clear_time_measurement()
-        start = time.time()
-        for i in range(100):
-            self.clear_hash()
-            self.run_interceptor_vanilla(True, None)
-            try:
-                print(os.path.getsize(self.hash_file), end=' ')
-            except OSError:
-                pass
-            print(self.retcode, end='', flush=True)
-        end = time.time()
-        print(f'\nrun time of vanilla + print trace: {end - start}, after time: {self.after_time} '
-              f',acccept_time: {self.accept_time}')
+        self.proc_unwind = True
+        self.run_hundred_measurement(True, None, "no client record stack (proc unwind)")
 
         self.print_trace = False
+
         if self.server:
             if self.accept_hash == -1:
                 # test with client
                 self.sc_cov = False
-                self.clear_time_measurement()
-                start = time.time()
-                for i in range(100):
-                    self.run_interceptor_vanilla(False, self.target.get("clients")[0])
-                    print(self.retcode, end='', flush=True)
-                end = time.time()
-                print(f"\nrun time of vanilla(client): {end - start}, "
-                      f"client time {self.client_time}, "
-                      f"acccept_time: {self.accept_time},"
-                      f"aftertime: {self.after_time}")
+                self.proc_unwind = False
+                self.run_hundred_measurement(False, self.target.get("clients")[0], "vanilla client")
 
             self.sc_cov = True
             self.not_write = True
-            self.clear_time_measurement()
-            start = time.time()
-            for i in range(100):
-                self.run_interceptor_vanilla(False, self.target.get("clients")[0])
-                print(self.retcode, end='', flush=True)
-            end = time.time()
-            print(f"\nrun time of vanilla(client) trace stack: {end - start}, "
-                  f"client time {self.client_time}, "
-                  f"acccept_time: {self.accept_time},"
-                  f"aftertime: {self.after_time}")
+            self.proc_unwind = False
+            self.run_hundred_measurement(False, self.target.get("clients")[0], "client trace stack(ptrace)")
+
+            self.sc_cov = True
+            self.not_write = True
+            self.proc_unwind = True
+            self.run_hundred_measurement(False, self.target.get("clients")[0], "client trace stack(proc)")
 
             self.sc_cov = True
             self.not_write = False
             self.print_trace = False
-            self.clear_time_measurement()
-            start = time.time()
-            for i in range(100):
-                self.clear_hash()
-                self.run_interceptor_vanilla(False, self.target.get("clients")[0])
-                print(self.retcode, end='', flush=True)
-                try:
-                    print(os.path.getsize(self.hash_file), end=' ')
-                except OSError:
-                    pass
-            end = time.time()
-            print(f"\nrun time of vanilla(client) record stack: {end - start}, "
-                  f"client time {self.client_time}, "
-                  f"acccept_time: {self.accept_time},"
-                  f"aftertime: {self.after_time}")
+            self.proc_unwind = False
+            self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(ptrace)")
 
-            self.sc_cov = False
+            self.sc_cov = True
             self.not_write = False
-            self.print_trace = True
-            self.clear_time_measurement()
-            start = time.time()
-            for i in range(100):
-                self.clear_hash()
-                self.run_interceptor_vanilla(False, self.target.get("clients")[0])
-                print(self.retcode, end='', flush=True)
-                try:
-                    print(os.path.getsize(self.hash_file), end=' ')
-                except OSError:
-                    pass
-            end = time.time()
-            print(f"\nrun time of vanilla(client) print stack: {end - start}, "
-                  f"client time {self.client_time}, "
-                  f"acccept_time: {self.accept_time},"
-                  f"aftertime: {self.after_time}")
-
+            self.print_trace = False
+            self.proc_unwind = True
+            self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(proc)")
 
     def parse_syscall_order(self, before=True):
         syscall_order = []
