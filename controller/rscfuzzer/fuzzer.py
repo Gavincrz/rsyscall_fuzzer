@@ -312,7 +312,7 @@ class Fuzzer:
             self.sc_cov = True
             self.not_write = True
             self.proc_unwind = False
-            self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(proc)")
+            self.run_hundred_measurement(False, self.target.get("clients")[0], "client print stack(ptrace)")
 
     def parse_syscall_order(self, before=True):
         syscall_order = []
