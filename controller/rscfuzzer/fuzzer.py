@@ -192,7 +192,6 @@ class Fuzzer:
         self.measurement = False
         self.not_write = False
         self.print_trace = False
-        self.proc_unwind = False
         self.accept_time = 0
         self.client_time = 0
         self.after_time = 0
@@ -205,6 +204,8 @@ class Fuzzer:
         self.after_time = 0
 
     def setup_env_var(self):
+        # add libunwind library to LD_LIBRARY_PATH
+        self.target_env['LD_LIBRARY_PATH'] = '/home/gavin/libunwind/build/usr/local/lib'
         env_dict = self.target.get("env")
         if env_dict is not None:
             for key, value in env_dict.items():
@@ -254,65 +255,35 @@ class Fuzzer:
 
         self.sc_cov = True
         self.not_write = True
-        self.proc_unwind = False
         self.run_hundred_measurement(True, None, "no client trace stack (ptrace)")
 
         self.sc_cov = True
         self.not_write = True
-        self.proc_unwind = True
         self.run_hundred_measurement(True, None, "no client trace stack (proc unwind)")
 
-        self.sc_cov = True
-        self.not_write = False
-        self.proc_unwind = False
-        self.run_hundred_measurement(True, None, "no client record stack (ptrace)")
 
         self.sc_cov = True
         self.not_write = False
-        self.proc_unwind = True
         self.run_hundred_measurement(True, None, "no client record stack (proc unwind)")
 
-        self.print_trace = True
-        self.sc_cov = True
-        self.not_write = True
-        self.proc_unwind = False
-        self.run_hundred_measurement(True, None, "no client print stack (ptrace)")
 
         self.print_trace = False
         if self.server:
             if self.accept_hash == -1:
                 # test with client
                 self.sc_cov = False
-                self.proc_unwind = False
                 self.run_hundred_measurement(False, self.target.get("clients")[0], "vanilla client")
 
             self.sc_cov = True
             self.not_write = True
-            self.proc_unwind = False
-            self.run_hundred_measurement(False, self.target.get("clients")[0], "client trace stack(ptrace)")
-
-            self.sc_cov = True
-            self.not_write = True
-            self.proc_unwind = True
             self.run_hundred_measurement(False, self.target.get("clients")[0], "client trace stack(proc)")
 
-            self.sc_cov = True
-            self.not_write = False
-            self.print_trace = False
-            self.proc_unwind = False
-            self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(ptrace)")
 
             self.sc_cov = True
             self.not_write = False
             self.print_trace = False
-            self.proc_unwind = True
             self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(proc)")
 
-            self.print_trace = True
-            self.sc_cov = True
-            self.not_write = True
-            self.proc_unwind = False
-            self.run_hundred_measurement(False, self.target.get("clients")[0], "client print stack(ptrace)")
 
     def parse_syscall_order(self, before=True):
         syscall_order = []
@@ -733,8 +704,6 @@ class Fuzzer:
         if self.print_trace:
             strace_cmd = f"{strace_cmd} -k"
         elif self.sc_cov:
-            if self.proc_unwind:
-                strace_cmd = f"{strace_cmd} -Z"
             strace_cmd = f"{strace_cmd} -n {self.hash_file}"
             if self.not_write:
                 strace_cmd = f"{strace_cmd} -N"
