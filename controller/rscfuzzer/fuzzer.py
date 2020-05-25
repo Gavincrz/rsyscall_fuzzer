@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 hash_file_v = "hash_v.txt"
 hash_file_f = "hash_f.txt"
 
+ld_cmd = "LD_LIBRARY_PATH=/home/gavin/libunwind/build/usr/local/lib"
 class Fuzzer:
     def __init__(self, config, target_name, start_skip=0):
         self.config = config
@@ -58,6 +59,7 @@ class Fuzzer:
         # setup environment variable
         self.target_env = os.environ.copy()
         self.setup_env_var()
+        self.cache_unwind = True
 
         # check strace log file, target config has high priority
         self.strace_log = self.target.get("strace_log", None)
@@ -253,18 +255,17 @@ class Fuzzer:
 
         self.run_hundred_measurement(True, None, "no client strace")
 
-        self.sc_cov = True
-        self.not_write = True
-        self.run_hundred_measurement(True, None, "no client trace stack (ptrace)")
 
         self.sc_cov = True
         self.not_write = True
-        self.run_hundred_measurement(True, None, "no client trace stack (proc unwind)")
+        self.cache_unwind = False
+        self.run_hundred_measurement(True, None, "no client trace stack (ori_unwind)")
 
 
         self.sc_cov = True
-        self.not_write = False
-        self.run_hundred_measurement(True, None, "no client record stack (proc unwind)")
+        self.not_write = True
+        self.cache_unwind = True
+        self.run_hundred_measurement(True, None, "no client record stack (cache unwind)")
 
 
         self.print_trace = False
@@ -276,13 +277,15 @@ class Fuzzer:
 
             self.sc_cov = True
             self.not_write = True
-            self.run_hundred_measurement(False, self.target.get("clients")[0], "client trace stack(proc)")
+            self.cache_unwind = False
+            self.run_hundred_measurement(False, self.target.get("clients")[0], "client trace stack(ori_unwind)")
 
 
             self.sc_cov = True
-            self.not_write = False
+            self.not_write = True
             self.print_trace = False
-            self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(proc)")
+            self.cache_unwind = True
+            self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(cache_unwind)")
 
 
     def parse_syscall_order(self, before=True):
@@ -325,6 +328,45 @@ class Fuzzer:
         hash = int(temp[1])
         stack = temp[2].replace('%', '\n')
         return syscall, hash, stack
+
+    def run_magic_test(self):
+        self.clear_hash()
+        # run the vanilla version first before poll
+        ret = self.run_interceptor_vanilla(True, None)
+        self.parse_supported_hash("before.txt")
+        if ret == 0:
+            log.info(f"vanilla cov run success, before_poll = true")
+
+        if self.server:
+            if "clients" not in self.target:
+                log.error(f"No client defiend for target {self.target_name}")
+                return
+            # test the part after polling separately for each client
+            for client in self.target.get("clients"):
+                ret = self.run_interceptor_vanilla(False, client)
+                self.parse_supported_hash("after.txt")
+                if ret == 0:
+                    log.info(f"vanilla cov run success, before_poll = false")
+
+    def parse_supported_hash(self, filename):
+        # hardcode filename
+        with open(self.hash_file) as fp:
+            lines = fp.readlines()
+            dict = {}
+            for line in lines:
+                syscall, hash, stack = self.parse_syscall_stack(line)
+                pair = dict.get(hash)
+                if syscall in self.supported:
+                    if pair is None:
+                        dict[hash] = (syscall, 1, stack)
+                    else:
+                        dict[hash] = (syscall, pair[1] + 1, stack)
+
+        file = open(filename, 'w+')
+        for key, value in dict.items():
+            file.write(f'{value[0]}: {key}: {value[1]}\n{value[2]}\n')
+        file.close()
+        print(f'there are {len(dict)} unique interesting invocations in vanilla run')
 
     def parse_hash(self, vanilla=True):
         # hardcode filename
@@ -714,8 +756,11 @@ class Fuzzer:
 
         if origin:
             strace_cmd = self.command
+        ld_path = ""
+        if self.cache_unwind:
+            ld_path = ld_cmd
         if self.sudo:
-            strace_cmd = f"sudo -E {strace_cmd}"
+            strace_cmd = f"sudo -E {ld_path} {strace_cmd}"
         # strace_cmd = f"sudo -E /home/gavin/strace/strace -ff -j epoll_wait -J {cur_pid} -G -B 644 -K /home/gavin/rsyscall_fuzzer/controller/syscall.json -L /home/gavin/rsyscall_fuzzer/controller/record.txt -n syscov_memcached.txt /home/gavin/memcached-1.5.20/memcached -p 11111 -U 11111 -u gavin"
         # run the interceptor, make sure nothing else is running
         self.kill_servers()
@@ -863,8 +908,11 @@ class Fuzzer:
 
             strace_cmd = f"{strace_cmd} {self.command}"
 
+            if self.cache_unwind:
+                ld_path = ld_cmd
+
             if self.sudo:
-                strace_cmd = f"sudo -E {strace_cmd}"
+                strace_cmd = f"sudo -E {ld_path} {strace_cmd}"
 
             log.info(f"start fuzzing with command {strace_cmd}, "
                      f"num_iterations = {self.iteration}, skip_count={skip_count}")

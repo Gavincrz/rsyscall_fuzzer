@@ -188,8 +188,9 @@ def parse_cmd():
     if args.test:
         # microbenchmark
         sc_fuzzer = Fuzzer(config, args.target, args.skip)
-        sc_fuzzer.measurement = True
-        sc_fuzzer.run_measurement()
+        sc_fuzzer.run_magic_test()
+        # sc_fuzzer.measurement = True
+        # sc_fuzzer.run_measurement()
         # target = targets[args.target]
         # clients = target.get("clients")
         # if clients is not None and len(clients) > 0:
