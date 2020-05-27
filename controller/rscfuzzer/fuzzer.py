@@ -424,12 +424,12 @@ class Fuzzer:
             for line in lines:
                 syscall, hash_str, stack = self.parse_syscall_stack_string_hash(line)
                 stack_hash = int(hash_str)
+                # check if syscall already encountered in overallstack
+                str_key = f'{syscall}@{hash_str}'
                 if syscall in self.supported:
                     # check if syscall match target
                     if has_target and syscall == target_syscall and stack_hash == target_hash:
                         target_found = True
-                    # check if syscall already encountered in overallstack
-                    str_key = f'{syscall}@{hash_str}'
                     # if not, add to new stack
                     if not str_key in self.overall_set:
                         support_new_syscall_dict[str_key] = stack
@@ -835,7 +835,7 @@ class Fuzzer:
                 self.overall_set.update(new_syscall_dict.keys())
 
                 for i in range(len(new_syscall_dict.keys())):
-                    str_key = new_syscall_dict.keys()[i]
+                    str_key = list(new_syscall_dict.keys())[i]
                     split_list = str_key.split('@')
                     log.info(f'recursive fuzz newly found syscall {str_key}:'
                              f' {i}/{len(new_syscall_dict)}, depth = {depth}')
@@ -865,7 +865,7 @@ class Fuzzer:
     def recursive_fuzz_main_loop(self, vanilla_list, before_poll=True, client=None):
         # generate initial target reference
         for i in range(len(vanilla_list.keys())):
-            str_key = vanilla_list.keys()[i]
+            str_key = list(vanilla_list.keys())[i]
             split_list = str_key.split('@')
             log.info(f'start recursive fuzz from vanilla_set {str_key}:'
                      f' {i}/{len(vanilla_list)}, before_poll = {before_poll}')

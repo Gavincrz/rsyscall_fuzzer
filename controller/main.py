@@ -232,6 +232,7 @@ def parse_cmd():
         exit()
     if args.recursive:
         sc_fuzzer.run_recursive_fuzz()
+        exit()
 
     sc_fuzzer.run()
 
