@@ -3,6 +3,7 @@ import re
 
 ACCEPT_SIG = int(signal.SIGRTMAX-7)
 CLIENT_RETRY = 2
+INVOCATION_NOT_FOUND_RETRY = 3
 
 ''' gdb patterns '''
 top_stack_pattern = re.compile("#.*")
@@ -47,6 +48,29 @@ all_syscall = ["read", "write", "open", "close", "stat", "fstat", "lstat", "poll
                'recvmmsg', 'fanotify_init', 'fanotify_mark', 'prlimit', 'name_to_handle_at', 'open_by_handle_at',
                'clock_adjtime', 'syncfs', 'sendmmsg', 'setns']
 
+# this must match order in strace, maybe use a json for this
+syscall_field_index = {
+    "read": ["ret"],
+    "open": ["ret"],
+    "openat": ["ret"],
+    "write": ["ret"],
+    "close": ["ret"],
+    "stat": ["ret", "st_dev", "st_ino", "st_mode", "st_nlink",
+             "st_uid", "st_gid", "st_rdev", "st_size", "st_blksize",
+             "st_blocks", "st_atim", "st_mtim", "st_ctim"],
+    "fstat": ["ret", "st_dev", "st_ino", "st_mode", "st_nlink",
+              "st_uid", "st_gid", "st_rdev", "st_size", "st_blksize",
+              "st_blocks", "st_atim", "st_mtim", "st_ctim"],
+    "lstat": ["ret", "st_dev", "st_ino", "st_mode", "st_nlink",
+              "st_uid", "st_gid", "st_rdev", "st_size", "st_blksize",
+              "st_blocks", "st_atim", "st_mtim", "st_ctim"],
+    "getpid": ["ret"],
+    "lseek": ["ret"],
+    "epoll_wait": ["ret", "events", "data"],
+    "dup2": ["ret"],
+    "dup3": ["ret"],
+    "bind": ["ret"],
+}
 
 
 

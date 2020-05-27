@@ -99,8 +99,7 @@ def signal_handler(sig, frame):
     global sc_fuzzer
     print('You pressed Ctrl+C, kill running servers')
     if sc_fuzzer:
-        sc_fuzzer.kill_servers()
-        sc_fuzzer.kill_gdb()
+        sc_fuzzer.clear_exit()
     sys.exit(0)
 
 
@@ -142,6 +141,12 @@ def parse_cmd():
         "-t",
         help="secret test option",
         action="store_const", dest="test", const=True, default=False,
+    )
+
+    parser.add_argument(
+        "-e",
+        help="recursive fuzz",
+        action="store_const", dest="recursive", const=True, default=False,
     )
 
     parser.add_argument(
@@ -225,6 +230,9 @@ def parse_cmd():
     if args.order:
         sc_fuzzer.check_syscall_order()
         exit()
+    if args.recursive:
+        sc_fuzzer.run_recursive_fuzz()
+
     sc_fuzzer.run()
 
 
