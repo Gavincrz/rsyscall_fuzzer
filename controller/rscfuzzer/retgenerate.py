@@ -7,7 +7,6 @@ def generate_value(operator, value):
     add_set.add(value)
     if operator == "==":
         add_set.add(value+1)
-        add_set.add(value-1)
     if operator == ">" or operator == "<=":
         add_set.add(value+1)
     if operator == "<" or operator == ">=":
