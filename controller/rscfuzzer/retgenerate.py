@@ -1,12 +1,12 @@
 import os
 import json
 
-
+magic_not_equal = 12580511
 def generate_value(operator, value):
     add_set = set()
     add_set.add(value)
-    if operator == "==":
-        add_set.add(value+1)
+    if operator == "==": # use a magic number instead of +1, to avoid adding too much values in set
+        add_set.add(magic_not_equal)
     if operator == ">" or operator == "<=":
         add_set.add(value+1)
     if operator == "<" or operator == ">=":

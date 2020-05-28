@@ -112,6 +112,12 @@
     },
     {
       "name": "connect"
+    },
+    {
+      "name": "accept"
+    },
+    {
+      "name": "accept4"
     }
   ]
 }
