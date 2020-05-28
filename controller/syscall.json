@@ -121,6 +121,12 @@
     },
     {
       "name": "sendfile"
+    },
+    {
+      "name": "getcwd"
+    },
+    {
+      "name": "writev"
     }
   ]
 }
