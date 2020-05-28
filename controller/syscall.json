@@ -85,6 +85,33 @@
     },
     {
       "name": "setsockopt"
+    },
+    {
+      "name": "listen"
+    },
+    {
+      "name": "epoll_ctl"
+    },
+    {
+      "name": "setgroups"
+    },
+    {
+      "name": "getuid"
+    },
+    {
+      "name": "access"
+    },
+    {
+      "name": "getgid"
+    },
+    {
+      "name": "setuid"
+    },
+    {
+      "name": "setgid"
+    },
+    {
+      "name": "connect"
     }
   ]
 }

@@ -834,23 +834,21 @@ class Fuzzer:
                 else:
                     log.debug(f'target not found retry: {retry}')
             if new_syscall_dict is None:
-                log.debug('target syscall not found',
+                log.info('target syscall not found',
                           self.coverage_dict[f'{current_index_target[0]}@{current_index_target[1]}'])
                 # skip this target if still not found
                 return
-            log.info(f"number of overallset = {len(self.overall_set)}")
+
             if depth + 1 < self.max_depth:
                 log.debug(f'{len(new_syscall_dict)} new invocations found!')
                 # update overall set and explore next depth
                 self.overall_set.update(new_syscall_dict.keys())
-
+                if len(new_syscall_dict) > 0:
+                    log.info(f"number of overallset = {len(self.overall_set)}")
                 for i in range(len(new_syscall_dict.keys())):
                     str_key = list(new_syscall_dict.keys())[i]
                     split_list = str_key.split('@')
                     stack_str = new_syscall_dict[str_key]
-                    log.info(f'recursive fuzz newly found syscall {str_key}:'
-                             f' {i}/{len(new_syscall_dict)}, depth = {depth}', )
-                    log.debug(stack_str)
                     syscall = split_list[0]
                     hash_str = split_list[1]
 
@@ -864,6 +862,11 @@ class Fuzzer:
 
                     next_index_targets.append(next_index_target)
                     next_value_targets.append(next_value_target)
+
+                    log.info(f'recursive fuzz newly found syscall {str_key}:'
+                             f' {i}/{len(new_syscall_dict)}, depth = {depth}, '
+                             f'targets = {next_value_targets}')
+                    log.info(stack_str)
 
                     # call the recursive function on the two new list
                     self.fuzz_with_targets(next_index_targets, next_value_targets, depth+1, before_poll, client)
@@ -1438,7 +1441,7 @@ class Fuzzer:
         if self.sudo:
             strace_cmd = f"sudo -E {ld_path} {strace_cmd}"
 
-        log.info(f"start fuzzing with command {strace_cmd}")
+        log.debug(f"start fuzzing with command {strace_cmd}")
         args = shlex.split(strace_cmd)
 
         # do some clean up before run
