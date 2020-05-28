@@ -82,6 +82,9 @@
     },
     {
       "name": "prlimit64"
+    },
+    {
+      "name": "setsockopt"
     }
   ]
 }

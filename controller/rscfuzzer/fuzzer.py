@@ -238,11 +238,12 @@ class Fuzzer:
         # load coverage file if exist
         if os.path.isfile(coverage_file):
             try:
-                file = open(hash_file_v, 'rb')
+                file = open(coverage_file, 'rb')
                 self.coverage_dict = pickle.load(file)
                 file.close()
             except:
                 pass
+        print(f"size of loaded coverage is {len(self.coverage_dict)}")
 
         # syscall_set contain all syscalls in the application
         self.unsupported_syscalls = set()
@@ -415,6 +416,7 @@ class Fuzzer:
     def parse_supported_hash(self, target_syscall=None, target_hash=None):
         # return supported newly found syscall invocation, use dictionary to preserve order
         support_new_syscall_dict = {}
+        unsupported_dict = {}
         has_target = target_syscall is not None and target_hash is not None
         # if not has target, always update overall set, for vanilla set
         target_found = not has_target
@@ -423,26 +425,26 @@ class Fuzzer:
             lines = fp.readlines()
             for line in lines:
                 syscall, hash_str, stack = self.parse_syscall_stack_string_hash(line)
-                stack_hash = int(hash_str)
                 # check if syscall already encountered in overallstack
                 str_key = f'{syscall}@{hash_str}'
                 if syscall in self.supported:
                     # check if syscall match target
-                    if has_target and syscall == target_syscall and stack_hash == target_hash:
+                    if has_target and syscall == target_syscall and hash_str == target_hash:
                         target_found = True
                     # if not, add to new stack
                     if not str_key in self.overall_set:
                         support_new_syscall_dict[str_key] = stack
-
+                elif str_key not in self.coverage_dict.keys():
+                    unsupported_dict[str_key] = stack
                 # always record coverage
                 self.coverage_dict[str_key] = stack
 
             # if target syscall found otherwise return null
             if target_found:
+                log.debug(f'{len(unsupported_dict)} new unsupported invokation found')
                 return support_new_syscall_dict
             else:
                 return None
-
 
     def parse_hash(self, vanilla=True):
         # hardcode filename
@@ -514,7 +516,7 @@ class Fuzzer:
         for proc in psutil.process_iter():
             # check whether the process name matches
             if self.executable in proc.exe():
-                print("found not killed process, kill it")
+                print(f"found not killed process, kill it {self.executable}")
                 proc.kill()
 
 
@@ -522,7 +524,7 @@ class Fuzzer:
         if self.gdb_p:
             self.gdb_p.kill()
 
-    def handle_core_dump(self):
+    def handle_core_dump(self, retcode=None, targets=None):
         core_list = []
         # log.info("handle core dump")
         for f in os.listdir(self.core_dir):
@@ -569,12 +571,13 @@ class Fuzzer:
 
             if hash_str not in self.stack_set:
                 self.stack_set.add(hash_str)
-                log.info(f"new stack found: {stack_string}")
+                log.info(f"negenerate_jsonw stack found: {stack_string}")
+                hash_str = f'{hash_str}.{retcode}'
                 # store the core with records
                 dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
                 shutil.copy(file, dst)
                 log.info(f"core file stored to {dst}")
-                log.error(f"New Core Found: stored to {dst}")
+                log.error(f"New Core Found: stored to {dst}, retcode=[{retcode}], targets=[{targets}]")
                 # copy the record file as well
                 dst = os.path.join(self.store_core_dir, f"record.{hash_str}.txt")
                 shutil.copy(self.record_file, dst)
@@ -696,6 +699,7 @@ class Fuzzer:
     def clear_exit(self):
         self.kill_servers()
         self.kill_gdb()
+        self.store_syscall_coverage()
         sys.exit(0)
 
     def check_syscall_order(self):
@@ -816,29 +820,37 @@ class Fuzzer:
         current_value_target = value_targets[depth]
 
         while True:
-            # new_syscall_dict = None
-            # # run the fuzzer, retry 3 times if target syscall not appear
-            # for retry in range(0, const.INVOCATION_NOT_FOUND_RETRY):
-            #     self.run_fuzzer_with_targets(value_targets)
-            #     # get the new list
-            #     new_syscall_dict = self.parse_supported_hash(current_index_target[0], current_index_target[1])
-            #     # parse_supported_hash will return None if target not found
-            #     if new_syscall_dict is not None:
-            #         break
-            # if new_syscall_dict is None:
-            #     # skip this target if still not found
-            #     return
-            new_syscall_dict = {}
+            new_syscall_dict = None
+            new_unsupported_dict = None
+            # run the fuzzer, retry 3 times if target syscall not appear
+            log.debug(value_targets)
+            for retry in range(0, const.INVOCATION_NOT_FOUND_RETRY):
+                self.run_fuzzer_with_targets(value_targets, before_poll, client)
+                # get the new list
+                new_syscall_dict = self.parse_supported_hash(current_index_target[0], current_index_target[1])
+                # parse_supported_hash will return None if target not found
+                if new_syscall_dict is not None:
+                    break
+                else:
+                    log.debug(f'target not found retry: {retry}')
+            if new_syscall_dict is None:
+                log.debug('target syscall not found',
+                          self.coverage_dict[f'{current_index_target[0]}@{current_index_target[1]}'])
+                # skip this target if still not found
+                return
+            log.info(f"number of overallset = {len(self.overall_set)}")
             if depth + 1 < self.max_depth:
-                log.info(f'{len(new_syscall_dict)} new invocations found!')
+                log.debug(f'{len(new_syscall_dict)} new invocations found!')
                 # update overall set and explore next depth
                 self.overall_set.update(new_syscall_dict.keys())
 
                 for i in range(len(new_syscall_dict.keys())):
                     str_key = list(new_syscall_dict.keys())[i]
                     split_list = str_key.split('@')
+                    stack_str = new_syscall_dict[str_key]
                     log.info(f'recursive fuzz newly found syscall {str_key}:'
-                             f' {i}/{len(new_syscall_dict)}, depth = {depth}')
+                             f' {i}/{len(new_syscall_dict)}, depth = {depth}', )
+                    log.debug(stack_str)
                     syscall = split_list[0]
                     hash_str = split_list[1]
 
@@ -854,7 +866,7 @@ class Fuzzer:
                     next_value_targets.append(next_value_target)
 
                     # call the recursive function on the two new list
-                    self.fuzz_with_targets(next_index_targets, next_value_targets, 0, before_poll, client)
+                    self.fuzz_with_targets(next_index_targets, next_value_targets, depth+1, before_poll, client)
             else:
                 log.info('depth reach maximum')
             # try next value/field
@@ -867,7 +879,7 @@ class Fuzzer:
         for i in range(len(vanilla_list.keys())):
             str_key = list(vanilla_list.keys())[i]
             split_list = str_key.split('@')
-            log.info(f'start recursive fuzz from vanilla_set {str_key}:'
+            log.warning(f'start recursive fuzz from vanilla_set {str_key}:'
                      f' {i}/{len(vanilla_list)}, before_poll = {before_poll}')
             syscall = split_list[0]
             hash_str = split_list[1]
@@ -924,7 +936,7 @@ class Fuzzer:
         vanilla_list = self.parse_supported_hash()
         # update overall set
         self.overall_set.update(vanilla_list.keys())
-
+        print(f'size of vanilla_list is: {len(vanilla_list)} before poll, size of overallset is {len(self.coverage_dict)}')
         if vanilla_list is None:
             log.error("failed to get vanilla list, terminate")
             self.clear_exit()
@@ -948,6 +960,7 @@ class Fuzzer:
                 if vanilla_list is None:
                     log.error("failed to get vanilla list after poll, terminate")
                     self.clear_exit()
+                print(f'size of vanilla_list is: {len(vanilla_list)} after poll,  size of overallset is {len(self.coverage_dict)}')
                 # update overall_set
                 self.overall_set.update(vanilla_list.keys())
                 # store coverage
@@ -1090,10 +1103,32 @@ class Fuzzer:
             # signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
             # Wait for sigmax-7, or acknowledge if it is already pending
             start = time.time()
-            ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
+
+            # use polling instead of timeout
+            wait_start = time.time()
+            wait_end = time.time()
+            log.debug("wait for server's signal ...")
+            while wait_end - wait_start < self.poll_time:
+                ret = signal.sigtimedwait([const.ACCEPT_SIG], 0)  # poll the signal
+                if ret is not None:  # singal received
+                    break
+                # check server state
+                retcode = self.srv_p.poll()
+                if retcode is not None:
+                    log.debug(f'server terminated before reach accept, retcode = {retcode}')
+                    break
+                wait_end = time.time()
+            signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
+            if ret is None:  # timeout
+                log.debug("signal timeout!")
+                retcode = self.srv_p.poll()
+                if retcode is not None:
+                    log.debug(f'server terminated before reach accept, retcode = {retcode}')
+                self.kill_servers()
+                sys.exit("signal wait timeout during vanilla run, terminate the process")
+
             end = time.time()
             self.accept_time += (end - start)
-            signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
             if ret:
                 logging.debug(f"sig {const.ACCEPT_SIG} received!")
             else:
@@ -1374,8 +1409,7 @@ class Fuzzer:
         with open(self.reference_file, 'w+') as f:
             for value_target in value_targets:
                 # syscall, hash, field_idnex, value
-                f.write(f'{value_target[0], value_target[1], value_target[2], value_target[3]}\n')
-
+                f.write(f'{value_target[0]} {value_target[1]} {value_target[2]} {value_target[3]}\n')
         # construct strace command
         strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
         if self.server:
@@ -1407,145 +1441,130 @@ class Fuzzer:
         log.info(f"start fuzzing with command {strace_cmd}")
         args = shlex.split(strace_cmd)
 
-        # for i in range(0, self.iteration):
-        #     # run the command multiple times
-        #     # clear core dumps
-        #     self.clear_cores()
-        #     self.clear_record()
-        #     self.clear_strace_log()
-        #     self.clear_hash()
-        #     # make sure no server is running
-        #     self.kill_servers()
-        #     # initialize the retcode with a magic number
-        #     retcode = 10086
-        #     if self.setup_func is not None:
-        #         self.setup_func()
-        #     log.debug(f"start iteration {i}")
-        #     # signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
-        #     # Block signal until sigwait (if caught, it will become pending)
-        #     signal.pthread_sigmask(signal.SIG_BLOCK, [const.ACCEPT_SIG])
-        #     # signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
-        #     self.srv_p = subprocess.Popen(args,
-        #                                   stdin=subprocess.PIPE,
-        #                                   stdout=self.strace_log_fd,
-        #                                   stderr=self.strace_log_fd,
-        #                                   preexec_fn=os.setsid,
-        #                                   cwd=self.target_cwd,
-        #                                   env=self.target_env)
-        #     if not self.server:
-        #         if self.input:
-        #             self.srv_p.communicate(self.input.encode("utf-8").decode('unicode_escape').encode("utf-8"))
-        #         try:
-        #             retcode = self.srv_p.wait(self.timeout)  # wait for 2 second, if not ret, something happened
-        #         except subprocess.TimeoutExpired:
-        #             # timeout, kill the program and record failure
-        #             self.kill_servers()
-        #             should_increase = True
-        #             failed_iters.append((i, 'timeout_n'))
-        #         else:
-        #             if self.retcode != retcode:
-        #                 self.kill_servers()
-        #                 # return code do not match
-        #                 failed_iters.append((i, retcode))
-        #                 should_increase = True
-        #     else:  # handle servers
-        #         # check if server exist before wait for signal (save time)
-        #         # time.sleep(0.5)
-        #         retcode = self.srv_p.poll()
-        #         log.debug("check server exist before wait for signal")
-        #         if retcode is not None:
-        #             failed_iters.append((i, retcode))
-        #             should_increase = True
-        #         else:
-        #             # ignore signal
-        #             # Wait for sigmax-7, or acknowledge if it is already pending
-        #             log.debug("wait for server's signal ...")
-        #             ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
-        #             signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
-        #             if ret is None:  # timeout
-        #                 log.debug("signal timeout!")
-        #                 failed_iters.append((i, 'timeout_p'))
-        #                 should_increase = True
-        #                 # check server state
-        #                 retcode = self.srv_p.poll()
-        #                 if retcode is not None:
-        #                     failed_iters.append((i, retcode))
-        #                 self.kill_servers()
-        #                 # exit(0)
-        #             else:
-        #                 log.debug("signal received!")
-        #                 # check if this turn only test before poll:
-        #                 if before_poll:
-        #                     # check if the server crashes,
-        #                     ret = self.srv_p.poll()
-        #                     if ret is None:  # terminate the server and return
-        #                         os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
-        #                         log.debug("terminate the server, wait until it terminate..")
-        #                         try:
-        #                             self.srv_p.wait(5)  # wait until strace properly save the output
-        #                         except:
-        #                             log.debug("server terminate timeout, force kill")
-        #                             self.kill_servers()
-        #                         log.debug("server terminated")
-        #                     # server terminate before client, report error
-        #                     else:
-        #                         self.kill_servers()
-        #                         failed_iters.append((i, 'exit_b'))
-        #                         should_increase = True
-        #                 else:  # after polling, connect a client
-        #                     log.debug("connecting client ...")
-        #                     for j in range(const.CLIENT_RETRY):
-        #                         client_ret = client()
-        #                         if client_ret == 0:
-        #                             break
-        #                     log.debug(f"client ret code {client_ret}")
-        #                     if client_ret != 0:
-        #                         log.debug(f"client failed, kill server, wait ... ")
-        #                         os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
-        #                         try:
-        #                             self.srv_p.wait(5)  # wait until strace properly save the output
-        #                         except:
-        #                             log.debug("server terminate timeout, force kill")
-        #                             self.kill_servers()
-        #                         log.debug(f"server terminated ... ")
-        #                         failed_iters.append((i, 'client_f'))
-        #                         should_increase = True
-        #                     else:  # client success, check state of server
-        #                         try:  # wait for server to terminate after client
-        #                             retcode = self.srv_p.wait(timeout=self.timeout)
-        #                         except (TimeoutError, subprocess.TimeoutExpired):
-        #                             log.debug("server still exist after client, try to terminate it ...")
-        #                             os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
-        #                             try:
-        #                                 self.srv_p.wait(5)  # wait until cov properly save the output
-        #                             except:
-        #                                 log.error("server terminate time out, force kill")
-        #                                 self.kill_servers()
-        #                             log.debug("server terminated!")
-        #                             if self.retcode is not None:  # should exit
-        #                                 failed_iters.append((i, 'timeout_a'))
-        #                                 should_increase = True
-        #                         else:
-        #                             if retcode != self.retcode:  # check if retcode match
-        #                                 self.kill_servers()
-        #                                 failed_iters.append((i, retcode))
-        #                                 should_increase = True
-        #
-        #     # handle core dumped
-        #     core_ret = self.handle_core_dump()
-        #     if core_ret is None:
-        #         print("are you kiddingme ? how could this be NOne?")
-        #     elif core_ret > 0:
-        #         self.kill_servers()
-        #         failed_iters.append((i, 'core'))
-        #         should_increase = True
-        #     # for iteration, code in failed_iters:
-        #     #     if iteration == i:
-        #     #         log.info(f"{iteration}: {code}")
-        #     self.parse_hash(False)
-        #     log.debug("finish parse hash")
-        #
-        # # output list if necessary
-        # log.info(failed_iters)
-        # if should_increase:
-        #     skip_count = skip_count + 1
+        # do some clean up before run
+        self.clear_cores()
+        self.clear_record()
+        self.clear_strace_log()
+        self.clear_hash()
+        # make sure no server is running
+        self.kill_servers()
+        # initialize the retcode with a magic number
+        retcode = 10086
+        if self.setup_func is not None:
+            self.setup_func()
+
+        # Block signal until sigwait (if caught, it will become pending)
+        signal.pthread_sigmask(signal.SIG_BLOCK, [const.ACCEPT_SIG])
+
+        # running...
+        self.srv_p = subprocess.Popen(args,
+                                      stdin=subprocess.PIPE,
+                                      stdout=self.strace_log_fd,
+                                      stderr=self.strace_log_fd,
+                                      preexec_fn=os.setsid,
+                                      cwd=self.target_cwd,
+                                      env=self.target_env)
+        if not self.server:
+            if self.input:
+                self.srv_p.communicate(self.input.encode("utf-8").decode('unicode_escape').encode("utf-8"))
+            try:
+                retcode = self.srv_p.wait(self.timeout)  # wait for 2 second, if not ret, something happened
+            except subprocess.TimeoutExpired:
+                # timeout, kill the program
+                self.kill_servers()
+            else:
+                if self.retcode != retcode:
+                    self.kill_servers()
+
+        else:  # handle servers
+            # check if server exist before wait for signal (save time)
+            # time.sleep(0.5)
+            retcode = self.srv_p.poll()
+            log.debug("check server exist before wait for signal")
+            if retcode is not None:
+                log.debug('server exit before signal')
+            else:
+                # use polling instead of timeout
+                wait_start = time.time()
+                wait_end = time.time()
+                log.debug("wait for server's signal ...")
+                while wait_end - wait_start < self.poll_time:
+                    ret = signal.sigtimedwait([const.ACCEPT_SIG], 0)  # poll the signal
+                    if ret is not None: # singal received
+                        break
+                    # check server state
+                    retcode = self.srv_p.poll()
+                    if retcode is not None:
+                        log.debug(f'server terminated before reach accept, retcode = {retcode}')
+                        break
+                    wait_end = time.time()
+                signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
+                if ret is None:  # timeout
+                    log.debug("signal timeout!")
+                    retcode = self.srv_p.poll()
+                    if retcode is not None:
+                        log.debug(f'server terminated before reach accept, retcode = {retcode}')
+                    self.kill_servers()
+                else:
+                    log.debug("signal received!")
+                    # check if this turn only test before poll:
+                    if before_poll:
+                        # check if the server crashes,
+                        retcode = self.srv_p.poll()
+                        if retcode is None:  # terminate the server and return
+                            os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                            log.debug("terminate the server, wait until it terminate..")
+                            try:
+                                self.srv_p.wait(5)  # wait until strace properly save the output
+                            except:
+                                log.debug("server terminate timeout, force kill")
+                                self.kill_servers()
+                            log.debug("server terminated")
+                        # server terminate before client, report error
+                        else:
+                            self.kill_servers()
+                    else:  # after polling, connect a client
+                        log.debug("connecting client ...")
+                        for j in range(const.CLIENT_RETRY):
+                            client_ret = client()
+                            if client_ret == 0:
+                                break
+                        log.debug(f"client ret code {client_ret}")
+                        if client_ret != 0:
+                            log.debug(f"client failed, kill server, wait ... ")
+                            os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                            try:
+                                self.srv_p.wait(5)  # wait until strace properly save the output
+                            except:
+                                log.debug("server terminate timeout, force kill")
+                                self.kill_servers()
+                            log.debug(f"server terminated ... ")
+                        else:  # client success, check state of server
+                            if self.retcode is not None: # server should exit
+                                try:  # wait for server to terminate after client
+                                    retcode = self.srv_p.wait(timeout=self.timeout)
+                                except (TimeoutError, subprocess.TimeoutExpired):
+                                    log.debug("server still exist after client, try to terminate it ...")
+                                    os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                    try:
+                                        self.srv_p.wait(5)  # wait until cov properly save the output
+                                    except:
+                                        log.error("server terminate time out, force kill")
+                                        self.kill_servers()
+                                else:
+                                    log.debug("server terminated!")
+                            # if server suppose to run inifinitely, just kill it
+                            else:
+                                os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                try:
+                                    self.srv_p.wait(5)  # wait until cov properly save the output
+                                except:
+                                    log.error("server terminate time out, force kill")
+                                    self.kill_servers()
+
+        # handle core dumped
+        core_ret = self.handle_core_dump(retcode, value_targets)
+        if core_ret is None:
+            print("are you kiddingme ? how could this be NOne?")
+        elif core_ret > 0:
+            self.kill_servers()

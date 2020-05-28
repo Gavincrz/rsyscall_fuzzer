@@ -265,7 +265,7 @@ targets = {
          "input": None,
          "timeout": 5,
          "setup_func": None,
-         "poll_time": 3,
+         "poll_time": 1,
          "cov": False,
          "sc_cov": True,
          "a_cov": True,
