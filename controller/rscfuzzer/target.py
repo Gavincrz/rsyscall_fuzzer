@@ -587,4 +587,24 @@ targets = {
          "cov": False,
          "accept_hash": 3234396722
          },
+
+    "onefile_test":
+        {"command": "/home/gavin/onefile",
+         "server": False,
+         "poll": None,
+         "clients": [],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "onefile_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 3,
+         "poll_time": 3,
+         "fuzz_valid": True,
+         "a_cov": True,
+         "sc_cov": True,
+         "syscall_json": "/home/gavin/onefile.json",
+         "hash_file": "onefile.txt",
+         },
 }
