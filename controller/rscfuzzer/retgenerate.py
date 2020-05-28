@@ -15,7 +15,7 @@ def generate_value(operator, value):
     return add_set
 
 
-syscall_translate = {'open': 'openat'}
+syscall_translate = {'open': 'openat', 'prlimit': 'prlimit64'}
 
 
 def generate_json(path, ori_file):
@@ -57,12 +57,16 @@ def generate_json(path, ori_file):
                     trans_syscall = syscall_translate[syscall]
 
                 # get original set
-                ori_dict = sys_dict[syscall]
-                if ori_dict.get(ret_val) is not None:
-                    ori_dict[ret_val].update(add_set)
+                ori_dict = sys_dict.get(syscall)
+                if ori_dict is None:
+                    if trans_syscall is None:
+                        print(f'syscall not recorded in original set {syscall}')
                 else:
-                    ori_dict[ret_val] = add_set
-                sys_dict[syscall] = ori_dict
+                    if ori_dict.get(ret_val) is not None:
+                        ori_dict[ret_val].update(add_set)
+                    else:
+                        ori_dict[ret_val] = add_set
+                    sys_dict[syscall] = ori_dict
 
                 # add translate syscall
                 if trans_syscall is not None:

@@ -81,6 +81,8 @@ syscall_field_index = {
     "setuid": ["ret"],
     "setgid": ["ret"],
     "connect": ["ret"],
+    "setsockopt": ["ret"],
+    "prlimit64": ["ret", "rlim_cur", "rlim_max"],
 }
 
 
