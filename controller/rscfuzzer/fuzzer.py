@@ -190,10 +190,19 @@ class Fuzzer:
         with open(self.syscall_config) as f:
             json_dict = json.load(f)
 
+        mismatch_syscalls = []
+
         syscall_list = json_dict["syscalls"]
         self.supported = []
         for item in syscall_list:
-            self.supported.append(item["name"])
+            if item["name"] in const.syscall_field_index.keys():
+                self.supported.append(item["name"])
+            else:
+                mismatch_syscalls.append(item["name"])
+        if len(mismatch_syscalls) > 0:
+            print("there are some syscalls in value dict but not in index dict!")
+            print(mismatch_syscalls)
+
         print("supported syscalls: ")
         print(self.supported)
 
@@ -209,14 +218,6 @@ class Fuzzer:
             self.value_dict[syscall_name] = append_dict
         print(self.value_dict)
 
-        # check index dict support every syscall in value dict
-        mismatch_syscalls = []
-        for key in self.value_dict.keys():
-            if key not in const.syscall_field_index.keys():
-                mismatch_syscalls.append(key)
-        if len(mismatch_syscalls) > 0:
-            print("there are some syscalls in value dict but not in index dict!")
-            print(mismatch_syscalls)
 
         # measurement option:
         self.measurement = False

@@ -70,6 +70,17 @@ syscall_field_index = {
     "dup2": ["ret"],
     "dup3": ["ret"],
     "bind": ["ret"],
+    "epoll_create": ["ret"],
+    "socket": ["ret"],
+    "listen": ["ret"],
+    "epoll_ctl": ["ret"],
+    "setgroups": ["ret"],
+    "getuid": ["ret"],
+    "access": ["ret"],
+    "getgid": ["ret"],
+    "setuid": ["ret"],
+    "setgid": ["ret"],
+    "connect": ["ret"],
 }
 
 
