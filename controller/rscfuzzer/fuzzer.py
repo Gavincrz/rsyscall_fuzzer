@@ -571,7 +571,7 @@ class Fuzzer:
 
             if hash_str not in self.stack_set:
                 self.stack_set.add(hash_str)
-                log.info(f"negenerate_jsonw stack found: {stack_string}")
+                log.info(f"new stack found: {stack_string}")
                 hash_str = f'{hash_str}.{retcode}'
                 # store the core with records
                 dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
