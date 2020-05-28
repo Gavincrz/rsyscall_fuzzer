@@ -835,8 +835,12 @@ class Fuzzer:
                 else:
                     log.debug(f'target not found retry: {retry}')
             if new_syscall_dict is None:
-                log.info('target syscall not found',
-                          self.coverage_dict[f'{current_index_target[0]}@{current_index_target[1]}'])
+                log.info('target syscall not found')
+                stack_str = self.coverage_dict[f'{current_index_target[0]}@{current_index_target[1]}']
+                if stack_str is not None:
+                    log.info(stack_str)
+                else:
+                    log.info('stack string is None?')
                 # skip this target if still not found
                 return
 
