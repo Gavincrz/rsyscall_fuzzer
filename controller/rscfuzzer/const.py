@@ -84,8 +84,9 @@ syscall_field_index = {
     # "setsockopt": ["ret"],
     # "prlimit64": ["ret", "rlim_cur", "rlim_max"],
     # "getsockopt": ["ret", "optval", "optlen"],
-    "accept": ["ret", "addr", "addrlen"],
-    "accept4": ["ret", "addr", "addrlen"],
+    # "accept": ["ret", "addr", "addrlen"],
+    # "accept4": ["ret", "addr", "addrlen"],
+    "sendfile": ["ret", "offset"],
 }
 
 

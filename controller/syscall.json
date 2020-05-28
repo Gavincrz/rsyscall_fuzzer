@@ -118,6 +118,9 @@
     },
     {
       "name": "accept4"
+    },
+    {
+      "name": "sendfile"
     }
   ]
 }
