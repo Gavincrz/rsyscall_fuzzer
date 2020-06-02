@@ -145,6 +145,48 @@
     },
     {
       "name": "nanosleep"
+    },
+    {
+      "name": "getsockname"
+    },
+    {
+      "name": "pipe"
+    },
+    {
+      "name": "clock_gettime"
+    },
+    {
+      "name": "select"
+    },
+    {
+      "name": "geteuid"
+    },
+    {
+      "name": "getegid"
+    },
+    {
+      "name": "uname"
+    },
+    {
+      "name": "recvmsg"
+    },
+    {
+      "name": "getpgrp"
+    },
+    {
+      "name": "setresuid"
+    },
+    {
+      "name": "getpeername"
+    },
+    {
+      "name": "setresgid"
+    },
+    {
+      "name": "getgroups"
+    },
+    {
+      "name": "chdir"
     }
   ]
 }

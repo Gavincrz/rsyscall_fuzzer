@@ -96,6 +96,21 @@ syscall_field_index = {
     "getppid": ["ret"],
     "dup": ["ret"],
     "nanosleep": ["ret", "tv_sec", "tv_nsec"],
+    "getsockname": ["ret", "addr", "addrlen"],
+    "pipe": ["ret"],
+    "clock_gettime": ["ret", "tv_sec", "tv_nsec"],
+    "select": ["ret", "readfds", "writefds", "exceptfds", "timeout"],
+    "geteuid": ["ret"],
+    "getegid": ["ret"],
+    "uname": ["ret"],
+    "recvmsg": ["ret", "msg_controllen"],
+    "getpgrp": ["ret"],
+    "setresuid": ["ret"],
+    "getpeername": ["ret", "addr", "addrlen"],
+    "setresgid": ["ret"],
+    "getgroups": ["ret"],
+    "chdir": ["ret"],
+    
 }
 
 
