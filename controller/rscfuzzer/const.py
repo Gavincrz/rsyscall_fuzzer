@@ -110,7 +110,9 @@ syscall_field_index = {
     "setresgid": ["ret"],
     "getgroups": ["ret"],
     "chdir": ["ret"],
-    
+    "socketpair": ["ret", "sv"],
+    "poll": ["ret", "fds"],
+    "sysinfo": ["ret", "info"]
 }
 
 
