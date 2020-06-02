@@ -88,7 +88,14 @@ syscall_field_index = {
     "accept4": ["ret", "addr", "addrlen"],
     "sendfile": ["ret", "offset"],
     "getcwd": ["ret"],
-    "writev": ["ret"]
+    "writev": ["ret"],
+    "setsid": ["ret"],
+    "sendto": ["ret"],
+    "chroot": ["ret"],
+    "getdents": ["ret", "dirp"],
+    "getppid": ["ret"],
+    "dup": ["ret"],
+    "nanosleep": ["ret", "tv_sec", "tv_nsec"],
 }
 
 

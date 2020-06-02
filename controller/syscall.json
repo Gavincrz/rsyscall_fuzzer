@@ -127,6 +127,24 @@
     },
     {
       "name": "writev"
+    },
+    {
+      "name": "setsid"
+    },
+    {
+      "name": "sendto"
+    },
+    {
+      "name": "chroot"
+    },
+    {
+      "name": "getppid"
+    },
+    {
+      "name": "dup"
+    },
+    {
+      "name": "nanosleep"
     }
   ]
 }
