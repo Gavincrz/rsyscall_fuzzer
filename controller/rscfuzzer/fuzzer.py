@@ -516,9 +516,12 @@ class Fuzzer:
                 self.srv_p = None
         for proc in psutil.process_iter():
             # check whether the process name matches
-            if self.executable in proc.exe():
-                print(f"found not killed process, kill it {self.executable}")
-                proc.kill()
+            try:
+                if self.executable in proc.exe():
+                    print(f"found not killed process, kill it {self.executable}")
+                    proc.kill()
+            except:
+                continue
 
 
     def kill_gdb(self):
