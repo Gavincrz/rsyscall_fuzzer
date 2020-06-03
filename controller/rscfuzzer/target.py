@@ -607,4 +607,24 @@ targets = {
          "syscall_json": "/home/gavin/onefile.json",
          "hash_file": "onefile.txt",
          },
+    "docker_test":
+        {
+         "command": "/onefile",
+         "server": False,
+         "poll": None,
+         "clients": [],
+         "sudo": True,
+         "retcode": None,
+         "env": None,
+         "strace_log": "onefile_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 3,
+         "poll_time": 3,
+         "fuzz_valid": True,
+         "a_cov": True,
+         "sc_cov": True,
+         "syscall_json": "syscall_g.json",
+         "hash_file": "onefile.txt",
+        }
 }
