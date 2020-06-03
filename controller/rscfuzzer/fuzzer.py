@@ -113,7 +113,7 @@ class Fuzzer:
         self.binary = self.command.split(' ')[0].split('/')[-1]
         self.executable = os.path.abspath(self.command.split(' ')[0])
         print(f"executable abs path is {self.executable}")
-        self.core_dir = '/cores'
+        self.core_dir = '/shared/cores/'
         signal.signal(const.ACCEPT_SIG, signal.SIG_IGN)
         # mkdir if necessary
         if not os.path.exists(self.core_dir):
