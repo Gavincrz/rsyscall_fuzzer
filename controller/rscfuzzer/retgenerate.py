@@ -86,7 +86,7 @@ def generate_json(path, ori_file):
         syscall_list.append(temp_dict)
     new_json['syscalls'] = syscall_list
     print(new_json)
-    with open('/home/gavin/syscall_g.json', 'w+') as f:
+    with open('syscall_g.json', 'w+') as f:
         json.dump(new_json, f, indent=2)
 
 
