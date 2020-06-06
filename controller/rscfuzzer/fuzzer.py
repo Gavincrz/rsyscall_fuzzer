@@ -548,13 +548,20 @@ class Fuzzer:
             self.gdb_p.stdin.write(("core-file " + file).encode("utf-8") + b"\n")
             self.gdb_p.stdin.flush()
 
+            pattern_not_found = False
+            data = ''
             while True:
                 data = self.gdb_p.stdout.readline().decode("utf-8")
                 if const.top_stack_pattern.match(data):
                     break
                 if const.not_found_pattern.match(data) or const.gdb_not_found.match(data):
                     self.kill_gdb()
-                    return
+                    pattern_not_found = True
+                    break
+
+            if pattern_not_found:
+                log.error(f"core anlyze failed: {data}, parh: {file}")
+                continue
 
             self.gdb_p.stdin.write("bt".encode("utf-8") + b"\n")
             self.gdb_p.stdin.flush()
