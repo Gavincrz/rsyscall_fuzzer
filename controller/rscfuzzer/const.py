@@ -112,7 +112,18 @@ syscall_field_index = {
     "chdir": ["ret"],
     "socketpair": ["ret", "sv"],
     "poll": ["ret", "fds"],
-    "sysinfo": ["ret", "info"]
+    "sysinfo": ["ret", "info"],
+    "readlink": ["ret"],
+    "link": ["ret"],
+    "chmod": ["ret"],
+    "mkdir": ["ret"],
+    "unlink": ["ret"],
+    "rename": ["ret"],
+    "pread64": ["ret"],
+    "symlink": ["ret"],
+    "setitimer": ["ret", "old_value"],
+    "statfs": ["ret", "buf"],
+    "wait4": ["ret", "wstatus", "rusage"]
 }
 
 

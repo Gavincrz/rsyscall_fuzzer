@@ -193,6 +193,39 @@
     },
     {
       "name": "sysinfo"
+    },
+    {
+      "name": "readlink"
+    },
+    {
+      "name": "link"
+    },
+    {
+      "name": "chmod"
+    },
+    {
+      "name": "mkdir"
+    },
+    {
+      "name": "unlink"
+    },
+    {
+      "name": "rename"
+    },
+    {
+      "name": "pread64"
+    },
+    {
+      "name": "symlink"
+    },
+    {
+      "name": "statfs"
+    },
+    {
+      "name": "setitimer"
+    },
+    {
+      "name": "wait4"
     }
   ]
 }

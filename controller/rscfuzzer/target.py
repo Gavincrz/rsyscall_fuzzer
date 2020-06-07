@@ -33,7 +33,20 @@ def openssh_simple_client():
     try:
         ssh = paramiko.SSHClient()
         ssh.load_host_keys("/home/gavin/.ssh/known_hosts")
-        ssh.connect("localhost", port=8080, username="gavin", timeout=5, banner_timeout=5, auth_timeout=5)
+        ssh.connect("127.0.0.1", port=8080, username="gavin", timeout=5, banner_timeout=5, auth_timeout=5)
+        ssh.exec_command("exit", timeout=5)
+        ssh.close()
+    except Exception as err:
+        # log.error(f"{err}")
+        return -1
+    else:
+        return 0
+
+def openssh_docker_simple_client():
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.load_host_keys("/home/gavin/.ssh/known_hosts")
+        ssh.connect("127.0.0.1", port=8080, username="gavin", timeout=5, banner_timeout=5, auth_timeout=5)
         ssh.exec_command("exit", timeout=5)
         ssh.close()
     except Exception as err:

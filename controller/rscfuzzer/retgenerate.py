@@ -14,7 +14,8 @@ def generate_value(operator, value):
     return add_set
 
 
-syscall_translate = {'open': 'openat', 'prlimit': 'prlimit64'}
+syscall_translate = {'open': 'openat', 'prlimit': 'prlimit64', 'pread': 'pread64',
+                     'pwrite': 'pwrite64'}
 
 
 def generate_json(path, ori_file):
