@@ -218,6 +218,7 @@ class Fuzzer:
             self.value_dict[syscall_name] = append_dict
         print(self.value_dict)
 
+        self.skip_server_setup = False
 
         # measurement option:
         self.measurement = False
@@ -244,7 +245,14 @@ class Fuzzer:
                 file.close()
             except:
                 pass
-        print(f"size of loaded coverage is {len(self.coverage_dict)}")
+        # load overallset
+        for key in self.coverage_dict.keys():
+            split_list = key.split('@')
+            syscall = split_list[0]
+            if syscall in self.value_dict.keys():
+                self.overall_set.add(key)
+
+        print(f"size of loaded coverage is {len(self.coverage_dict)}, size of loaded overalset is {len(self.overall_set)}")
 
         # syscall_set contain all syscalls in the application
         self.unsupported_syscalls = set()
@@ -895,6 +903,8 @@ class Fuzzer:
     def recursive_fuzz_main_loop(self, vanilla_list, before_poll=True, client=None):
         # generate initial target reference
         for i in range(len(vanilla_list.keys())):
+            if i < self.start_skip:
+                continue
             str_key = list(vanilla_list.keys())[i]
             split_list = str_key.split('@')
             log.warning(f'start recursive fuzz from vanilla_set {str_key}:'
@@ -908,6 +918,7 @@ class Fuzzer:
 
             index_targets = [first_index_target]
             value_targets = [first_value_target]
+            self.store_syscall_coverage()
             # call the recursive function on the two list, pass by value
             self.fuzz_with_targets(copy.deepcopy(index_targets), copy.deepcopy(value_targets), 0, before_poll, client)
 
@@ -950,6 +961,11 @@ class Fuzzer:
         if ret == 0:
             log.info(f"vanilla cov run success, before_poll = true")
 
+        self.skip_server_setup = False
+        if self.start_skip < 0:
+            self.skip_server_setup = True
+            self.start_skip = -self.start_skip
+
         # generate vanila syscall list
         vanilla_list = self.parse_supported_hash()
         # update overall set
@@ -960,9 +976,11 @@ class Fuzzer:
             self.clear_exit()
         # store coverage
         self.store_syscall_coverage()
-
-        # run recursive fuzz before poll syscall
-        self.recursive_fuzz_main_loop(vanilla_list, True, None)
+        
+        if not self.skip_server_setup:
+            # run recursive fuzz before poll syscall
+            self.recursive_fuzz_main_loop(vanilla_list, True, None)
+            self.start_skip = 0
 
         if self.server:
             if "clients" not in self.target:
