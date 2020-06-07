@@ -441,9 +441,9 @@ class Fuzzer:
                     if has_target and syscall == target_syscall and hash_str == target_hash:
                         target_found = True
                     # if not, add to new stack
-                    if not str_key in self.overall_set:
+                    if not str_key in self.overall_set or vanilla:
                         support_new_syscall_dict[str_key] = stack
-                elif str_key not in self.coverage_dict.keys() or vanilla:
+                elif str_key not in self.coverage_dict.keys():
                     unsupported_dict[str_key] = stack
                 # always record coverage
                 self.coverage_dict[str_key] = stack
