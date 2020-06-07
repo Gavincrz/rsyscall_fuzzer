@@ -598,7 +598,8 @@ targets = {
          "sc_cov": True,
          "hash_file": "syscov_memcached.txt",
          "cov": False,
-         "accept_hash": 3234396722
+         "accept_hash": 3234396722,
+         "syscall_json": "/home/gavin/memcached_syscall.json",
          },
 
     "onefile_test":
