@@ -22,7 +22,10 @@ def connect_memcached_client(a1=None, a2=None):
         client = memcached_udp.Client([('127.0.0.1', 11111)], response_timeout=3)
         client.set('key1', 'value1')
         r = client.get('key1')
-        # print(r)
+        if r == 'value1':
+            return 0
+        else:
+            return -1
     except Exception as e:
         # print(e)
         return -1

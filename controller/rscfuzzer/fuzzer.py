@@ -1130,6 +1130,7 @@ class Fuzzer:
                                       stdout=self.strace_log_fd,
                                       stderr=self.strace_log_fd,
                                       preexec_fn=os.setsid,
+                                      close_fds=True,
                                       cwd=self.target_cwd,
                                       env=self.target_env)
 
@@ -1321,6 +1322,7 @@ class Fuzzer:
                                               stderr=self.strace_log_fd,
                                               preexec_fn=os.setsid,
                                               cwd=self.target_cwd,
+                                              close_fds=True,
                                               env=self.target_env)
                 if not self.server:
                     if self.input:
@@ -1499,6 +1501,7 @@ class Fuzzer:
                                       stderr=self.strace_log_fd,
                                       preexec_fn=os.setsid,
                                       cwd=self.target_cwd,
+                                      close_fds=True,
                                       env=self.target_env)
         if not self.server:
             if self.input:
