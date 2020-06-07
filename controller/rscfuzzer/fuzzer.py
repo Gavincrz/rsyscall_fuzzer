@@ -422,7 +422,7 @@ class Fuzzer:
         pickle.dump(self.coverage_dict, file)
         file.close()
 
-    def parse_supported_hash(self, target_syscall=None, target_hash=None):
+    def parse_supported_hash(self, target_syscall=None, target_hash=None, vanilla=False):
         # return supported newly found syscall invocation, use dictionary to preserve order
         support_new_syscall_dict = {}
         unsupported_dict = {}
@@ -443,7 +443,7 @@ class Fuzzer:
                     # if not, add to new stack
                     if not str_key in self.overall_set:
                         support_new_syscall_dict[str_key] = stack
-                elif str_key not in self.coverage_dict.keys():
+                elif str_key not in self.coverage_dict.keys() or vanilla:
                     unsupported_dict[str_key] = stack
                 # always record coverage
                 self.coverage_dict[str_key] = stack
@@ -967,7 +967,7 @@ class Fuzzer:
             self.start_skip = -self.start_skip
 
         # generate vanila syscall list
-        vanilla_list = self.parse_supported_hash()
+        vanilla_list = self.parse_supported_hash(vanilla=True)
         # update overall set
         self.overall_set.update(vanilla_list.keys())
         print(f'size of vanilla_list is: {len(vanilla_list)} before poll, size of overallset is {len(self.coverage_dict)}')
@@ -992,7 +992,7 @@ class Fuzzer:
                 ret = self.run_interceptor_vanilla(False, client)
                 if ret == 0:
                     log.info(f"vanilla cov run success, before_poll = false")
-                vanilla_list = self.parse_supported_hash()
+                vanilla_list = self.parse_supported_hash(vanilla=True)
                 if vanilla_list is None:
                     log.error("failed to get vanilla list after poll, terminate")
                     self.clear_exit()
