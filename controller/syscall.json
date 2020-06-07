@@ -226,6 +226,15 @@
     },
     {
       "name": "wait4"
+    },
+    {
+      "name": "sendmsg"
+    },
+    {
+      "name": "pipe2"
+    },
+    {
+      "name": "epoll_create1"
     }
   ]
 }

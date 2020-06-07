@@ -97,7 +97,7 @@ syscall_field_index = {
     "dup": ["ret"],
     "nanosleep": ["ret", "tv_sec", "tv_nsec"],
     "getsockname": ["ret", "addr", "addrlen"],
-    "pipe": ["ret"],
+    "pipe": ["ret", "pair"],
     "clock_gettime": ["ret", "tv_sec", "tv_nsec"],
     "select": ["ret", "readfds", "writefds", "exceptfds", "timeout"],
     "geteuid": ["ret"],
@@ -123,7 +123,11 @@ syscall_field_index = {
     "symlink": ["ret"],
     "setitimer": ["ret", "old_value"],
     "statfs": ["ret", "buf"],
-    "wait4": ["ret", "wstatus", "rusage"]
+    "wait4": ["ret", "wstatus", "rusage"],
+    "sendmsg": ["ret"],
+    "pipe2": ["ret", "pair"],
+    "epoll_create1": ["ret"],
+    "recvfrom": ["ret", "addr", "addrlen"]
 }
 
 
