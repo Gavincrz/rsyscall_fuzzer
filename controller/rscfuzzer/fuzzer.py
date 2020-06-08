@@ -14,6 +14,7 @@ import pickle
 import psutil
 import random
 import copy
+import resource
 
 from rscfuzzer.target import targets
 
@@ -261,6 +262,15 @@ class Fuzzer:
         self.get_unsupported_syscalls()
         self.max_depth = self.config.get('max_depth', 50)
         self.reference_file = os.path.abspath(self.config.get('reference_file', "reference.txt"))
+
+        proc = psutil.Process()
+        log.warning(f'opened files: {proc.open_files()}')
+
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        log.warning(f'soft = {soft}, hard = {hard}')
+        resource.setrlimit(resource.RLIMIT_NOFILE, (1048576, 1048576))
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        log.warning(f'after set: soft = {soft}, hard = {hard}')
 
     def clear_time_measurement(self):
         self.accept_time = 0
@@ -521,6 +531,7 @@ class Fuzzer:
             try:
                 os.killpg(os.getpgid(self.srv_p.pid), signal.SIGKILL)
             except ProcessLookupError:
+                self.srv_p.kill()
                 self.srv_p = None
         for proc in psutil.process_iter():
             # check whether the process name matches
@@ -530,6 +541,8 @@ class Fuzzer:
                     proc.kill()
             except:
                 continue
+        if self.srv_p is not None:
+            self.srv_p.kill()
 
 
     def kill_gdb(self):
@@ -1495,14 +1508,21 @@ class Fuzzer:
         signal.pthread_sigmask(signal.SIG_BLOCK, [const.ACCEPT_SIG])
 
         # running...
-        self.srv_p = subprocess.Popen(args,
-                                      stdin=subprocess.PIPE,
-                                      stdout=self.strace_log_fd,
-                                      stderr=self.strace_log_fd,
-                                      preexec_fn=os.setsid,
-                                      cwd=self.target_cwd,
-                                      close_fds=True,
-                                      env=self.target_env)
+        try:
+            self.srv_p = subprocess.Popen(args,
+                                          stdin=subprocess.PIPE,
+                                          stdout=self.strace_log_fd,
+                                          stderr=self.strace_log_fd,
+                                          preexec_fn=os.setsid,
+                                          cwd=self.target_cwd,
+                                          close_fds=True,
+                                          env=self.target_env)
+        except:
+            proc = psutil.Process()
+            log.error(f'opened files: {proc.open_files()}, too many open file?')
+            self.kill_servers()
+            return
+
         if not self.server:
             if self.input:
                 self.srv_p.communicate(self.input.encode("utf-8").decode('unicode_escape').encode("utf-8"))
