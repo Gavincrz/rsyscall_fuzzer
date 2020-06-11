@@ -10,7 +10,7 @@ for frame in iter:
     fullname = '???nosymtab???'
     if symtab is not None:
         fullname = symtab.fullname()
-    final_stack_str = f'{final_stack_str}{fullname}:{line}'
+    final_stack_str = f'{final_stack_str}{fullname}:{line}\n'
 
 # output the string
 with open("gdb_stack_str.txt", "w+") as file:
