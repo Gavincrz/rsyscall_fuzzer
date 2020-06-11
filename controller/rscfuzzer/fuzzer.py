@@ -596,11 +596,11 @@ class Fuzzer:
             if len(data) <= 0:
                 log.error('gdb temp file read failed')
                 continue
-            log.debug(f'content of gdb output:\n {data}')
             hash = mmh3.hash64(data, signed=False)[0]
             if hash not in self.stack_set:
                 self.stack_set.add(hash)
-                log.info(f"new stack found: {data}")
+                log.info(f"new stack found:\n{data}")
+                log.debug(f'original core file = {file}')
                 # hash_str = f'{hash}.{retcode}'
                 # # store the core with records
                 # dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
