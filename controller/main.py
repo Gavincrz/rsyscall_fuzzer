@@ -197,7 +197,7 @@ def parse_cmd():
         stream_handler.setFormatter(formatter)
         logging.basicConfig(level=logging.DEBUG, handlers=[stream_handler])
         sc_fuzzer = Fuzzer(config, args.target, args.skip)
-        sc_fuzzer.core_dir = args.generate
+        sc_fuzzer.core_dir = sc_fuzzer.store_core_dir
         sc_fuzzer.handle_core_dump_script()
         exit()
 

@@ -6,13 +6,16 @@ try:
 
     final_stack_str = ''
     for frame in iter:
+        frame_name = frame.name()
+        if frame_name is None:
+            frame_name = '??noname??'
         sal = frame.find_sal()
         line = sal.line
         symtab = sal.symtab
-        fullname = '???nosymtab???'
+        fullname = '??nosymtab??'
         if symtab is not None:
             fullname = symtab.fullname()
-        final_stack_str = f'{final_stack_str}{fullname}:{line}\n'
+        final_stack_str = f'{final_stack_str}{frame_name}@{fullname}:{line}\n'
 
     # output the string
     with open("gdb_stack_str.txt", "w+") as file:
