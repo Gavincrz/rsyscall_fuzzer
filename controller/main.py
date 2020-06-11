@@ -188,7 +188,7 @@ def parse_cmd():
     file_handler.setLevel(args.loglevel)  # log everything to the file
     file_handler.setFormatter(formatter)
 
-    logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, stream_handler])
+
 
     if args.test and args.generate is not None:
         print(f'testing gdb with path {args.generate}')
@@ -202,6 +202,10 @@ def parse_cmd():
         exit()
 
     if args.test:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.DEBUG)
+        stream_handler.setFormatter(formatter)
+        logging.basicConfig(level=logging.DEBUG, handlers=[stream_handler])
         # microbenchmark
         # sc_fuzzer = Fuzzer(config, args.target, args.skip)
         # sc_fuzzer.run_magic_test()
@@ -212,6 +216,8 @@ def parse_cmd():
         if clients is not None and len(clients) > 0:
             ret = clients[0]()
         exit(ret)
+
+    logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, stream_handler])
 
     if args.syscount is not None and args.parse is None:
         count_syscalls(args.syscount)

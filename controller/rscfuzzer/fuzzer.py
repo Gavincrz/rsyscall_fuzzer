@@ -579,7 +579,7 @@ class Fuzzer:
             self.kill_gdb()
             args_gdb = shlex.split(f'gdb {core_exec} {file} -q -x {const.gdb_script}')
             try:
-                subprocess.run(args_gdb, timeout=5)
+                subprocess.run(args_gdb, timeout=5, stdout=subprocess.DEVNULL)
             except subprocess.TimeoutExpired as TE:
                 log.error(f'gdb subprocess timeout {TE}')
                 continue
