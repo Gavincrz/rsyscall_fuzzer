@@ -4,6 +4,9 @@ import re
 ACCEPT_SIG = int(signal.SIGRTMAX-7)
 CLIENT_RETRY = 2
 INVOCATION_NOT_FOUND_RETRY = 3
+gdb_script = 'gdb_stack.py'
+gdb_error_str = 'gdb script error'
+gdb_temp_file = 'gdb_stack_str.txt'
 
 ''' gdb patterns '''
 top_stack_pattern = re.compile("#.*")

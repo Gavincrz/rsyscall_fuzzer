@@ -190,6 +190,17 @@ def parse_cmd():
 
     logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, stream_handler])
 
+    if args.test and args.generate is not None:
+        print(f'testing gdb with path {args.generate}')
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.DEBUG)
+        stream_handler.setFormatter(formatter)
+        logging.basicConfig(level=logging.DEBUG, handlers=[stream_handler])
+        sc_fuzzer = Fuzzer(config, args.target, args.skip)
+        sc_fuzzer.core_dir = args.generate
+        sc_fuzzer.handle_core_dump_script()
+        exit()
+
     if args.test:
         # microbenchmark
         # sc_fuzzer = Fuzzer(config, args.target, args.skip)

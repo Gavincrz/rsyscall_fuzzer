@@ -15,7 +15,9 @@ import psutil
 import random
 import copy
 import resource
-
+import mmh3
+import magic
+import re
 from rscfuzzer.target import targets
 
 log = logging.getLogger(__name__)
@@ -548,6 +550,74 @@ class Fuzzer:
     def kill_gdb(self):
         if self.gdb_p:
             self.gdb_p.kill()
+
+    def handle_core_dump_script(self, retcode=None, targets=None):
+        core_list = []
+        # get all core dumps in the core_dir
+        for f in os.listdir(self.core_dir):
+            if 'core.' in f:
+                core_list.append(os.path.join(self.core_dir, f))
+        for file in core_list:
+            # get the type of core dump and
+            type_info = magic.from_file(file)
+            m = re.search(r"execfn: \'(\S+)\'", type_info)
+            if m is None:
+                # not a recognized core dump file
+                log.error(f'core file not recoginized: {file}, type info: {type_info}, target = {targets}')
+                continue
+            # check if exec matches
+            core_exec = m.group(1)
+            if core_exec != self.executable:
+                log.error(f'core file does not belong to target binary: {core_exec}, target = {targets}')
+                continue
+            # run gdb to get stack string using python script
+            # make sure previous gdb session is killed
+            # remove temp file if exist
+            if os.path.exists(const.gdb_temp_file):
+                os.remove(const.gdb_temp_file)
+
+            self.kill_gdb()
+            args_gdb = shlex.split(f'gdb {core_exec} {file} -q -x {const.gdb_script}')
+            try:
+                subprocess.run(args_gdb, timeout=5)
+            except subprocess.TimeoutExpired as TE:
+                log.error(f'gdb subprocess timeout {TE}')
+                continue
+            except Exception as e:
+                log.error(f'gdb subprocess error: {e}')
+                continue
+            # parsing the output:
+            data = ''
+            if not os.path.isfile(const.gdb_temp_file):
+                log.error('gdb temp file read failed')
+                continue
+            with open(const.gdb_temp_file, 'r') as output_f:
+                data = output_f.read()
+            if len(data) <= 0:
+                log.error('gdb temp file read failed')
+                continue
+            log.debug(f'content of gdb output:\n {data}')
+            hash = mmh3.hash64(data, signed=False)[0]
+            if hash not in self.stack_set:
+                self.stack_set.add(hash)
+                log.info(f"new stack found: {data}")
+                # hash_str = f'{hash}.{retcode}'
+                # # store the core with records
+                # dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
+                # shutil.copy(file, dst)
+                # log.info(f"core file stored to {dst}")
+                # log.error(f"New Core Found: stored to {dst}, retcode=[{retcode}], targets=[{targets}]")
+                # # copy the record file as well
+                # dst = os.path.join(self.store_core_dir, f"record.{hash_str}.txt")
+                # shutil.copy(self.record_file, dst)
+                # log.info(f"record file stored to {dst}")
+                # # copy strace log as well
+                # dst = os.path.join(self.store_core_dir, f"strace.{hash_str}.txt")
+                # shutil.copy(self.strace_log, dst)
+                # log.info(f"strace file stored to {dst}")
+                # log.info("finish handle core dump")
+        return len(core_list)
+
 
     def handle_core_dump(self, retcode=None, targets=None):
         core_list = []
