@@ -1362,10 +1362,22 @@ class Fuzzer:
                         failed_iters.append((i, retcode))
                         should_increase = True
                     else:
-                        # ignore signal
-                        # Wait for sigmax-7, or acknowledge if it is already pending
+                        # use polling instead of timeout
+                        wait_start = time.time()
+                        wait_end = time.time()
                         log.debug("wait for server's signal ...")
-                        ret = signal.sigtimedwait([const.ACCEPT_SIG], self.poll_time)  # wait until server reach accept
+                        while wait_end - wait_start < self.poll_time:
+                            ret = signal.sigtimedwait([const.ACCEPT_SIG], 0)  # poll the signal
+                            if ret is not None:  # singal received
+                                break
+                            # check server state
+                            retcode = self.srv_p.poll()
+                            if retcode is not None:
+                                log.debug(f'server terminated before reach accept, retcode = {retcode}')
+                                failed_iters.append((i, retcode))
+                                should_increase = True
+                                break
+                            wait_end = time.time()
                         signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
                         if ret is None:  # timeout
                             log.debug("signal timeout!")

@@ -454,6 +454,7 @@ targets = {
          "cov_cwd": "/home/gavin/memcached-cov/",
          "fuzz_valid": True,
          "sc_cov": True,
+         "accept_hash": 3234396722,
          "syscall_json": "/home/gavin/memcached_syscall.json",
          "hash_file": "syscov_memcached.txt",
          },
