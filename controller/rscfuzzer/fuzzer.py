@@ -616,8 +616,6 @@ class Fuzzer:
                 shutil.copy(self.strace_log, dst)
                 log.info(f"strace file stored to {dst}")
                 log.info("finish handle core dump")
-            else:
-                log.debug(f"duplicated core found: {data}")
         return len(core_list)
 
 
@@ -1709,5 +1707,7 @@ class Fuzzer:
         core_ret = self.handle_core_dump_script(retcode, value_targets)
         if core_ret is None:
             print("are you kiddingme ? how could this be NOne?")
+        if retcode == -11 and core_ret == 0:
+            log.error(f'Retcode is -11 but no core found, target = {value_targets}')
         elif core_ret > 0:
             self.kill_servers()
