@@ -601,21 +601,21 @@ class Fuzzer:
                 self.stack_set.add(hash)
                 log.info(f"new stack found:\n{data}")
                 log.debug(f'original core file = {file}')
-                # hash_str = f'{hash}.{retcode}'
-                # # store the core with records
-                # dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
-                # shutil.copy(file, dst)
-                # log.info(f"core file stored to {dst}")
-                # log.error(f"New Core Found: stored to {dst}, retcode=[{retcode}], targets=[{targets}]")
-                # # copy the record file as well
-                # dst = os.path.join(self.store_core_dir, f"record.{hash_str}.txt")
-                # shutil.copy(self.record_file, dst)
-                # log.info(f"record file stored to {dst}")
-                # # copy strace log as well
-                # dst = os.path.join(self.store_core_dir, f"strace.{hash_str}.txt")
-                # shutil.copy(self.strace_log, dst)
-                # log.info(f"strace file stored to {dst}")
-                # log.info("finish handle core dump")
+                hash_str = f'{hash}.{retcode}'
+                # store the core with records
+                dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
+                shutil.copy(file, dst)
+                log.info(f"core file stored to {dst}")
+                log.error(f"New Core Found: stored to {dst}, retcode=[{retcode}], targets=[{targets}]")
+                # copy the record file as well
+                dst = os.path.join(self.store_core_dir, f"record.{hash_str}.txt")
+                shutil.copy(self.record_file, dst)
+                log.info(f"record file stored to {dst}")
+                # copy strace log as well
+                dst = os.path.join(self.store_core_dir, f"strace.{hash_str}.txt")
+                shutil.copy(self.strace_log, dst)
+                log.info(f"strace file stored to {dst}")
+                log.info("finish handle core dump")
         return len(core_list)
 
 
@@ -1075,7 +1075,7 @@ class Fuzzer:
                 ret = self.run_interceptor_vanilla(False, client)
                 if ret == 0:
                     log.info(f"vanilla cov run success, before_poll = false")
-                vanilla_list = self.parse_supported_hash(vanilla=True)
+                vanilla_list = self.parse_supported_hash(vanilla=False)
                 if vanilla_list is None:
                     log.error("failed to get vanilla list after poll, terminate")
                     self.clear_exit()
@@ -1704,7 +1704,7 @@ class Fuzzer:
                                     self.kill_servers()
 
         # handle core dumped
-        core_ret = self.handle_core_dump(retcode, value_targets)
+        core_ret = self.handle_core_dump_script(retcode, value_targets)
         if core_ret is None:
             print("are you kiddingme ? how could this be NOne?")
         elif core_ret > 0:
