@@ -616,6 +616,8 @@ class Fuzzer:
                 shutil.copy(self.strace_log, dst)
                 log.info(f"strace file stored to {dst}")
                 log.info("finish handle core dump")
+            else:
+                log.debug(f"duplicated core found: {data}")
         return len(core_list)
 
 
