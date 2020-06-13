@@ -221,8 +221,6 @@ class Fuzzer:
             self.value_dict[syscall_name] = append_dict
         print(self.value_dict)
 
-        self.skip_server_setup = False
-
         # measurement option:
         self.measurement = False
         self.not_write = False
@@ -990,8 +988,8 @@ class Fuzzer:
                 continue
             str_key = list(vanilla_list.keys())[i]
             split_list = str_key.split('@')
-            log.warning(f'start recursive fuzz from vanilla_set {str_key}:'
-                     f' {i}/{len(vanilla_list)}, before_poll = {before_poll}')
+            log.warning(f'start recursive fuzz from vanilla_set '
+                        f'{str_key}: {i}/{len(vanilla_list)}')
             syscall = split_list[0]
             hash_str = split_list[1]
 
@@ -1039,54 +1037,31 @@ class Fuzzer:
     def run_recursive_fuzz(self):
         log.info(f"running recursive fuzzer")
         self.clear_hash()
-        # run the vanilla version first before poll
-        ret = self.run_interceptor_vanilla(True, None)
-        if ret == 0:
-            log.info(f"vanilla cov run success, before_poll = true")
-
-        self.skip_server_setup = False
-        if self.start_skip < 0:
-            self.skip_server_setup = True
-            self.start_skip = -self.start_skip
-
-        # generate vanila syscall list
-        vanilla_list = self.parse_supported_hash(vanilla=True)
-        # update overall set
-        self.overall_set.update(vanilla_list.keys())
-        print(f'size of vanilla_list is: {len(vanilla_list)} before poll, size of overallset is {len(self.coverage_dict)}')
-        if vanilla_list is None:
-            log.error("failed to get vanilla list, terminate")
-            self.clear_exit()
-        # store coverage
-        self.store_syscall_coverage()
-        
-        if not self.skip_server_setup:
-            # run recursive fuzz before poll syscall
-            self.recursive_fuzz_main_loop(vanilla_list, True, None)
-            self.start_skip = 0
-
+        # get the client
+        client = None
         if self.server:
             if "clients" not in self.target:
                 log.error(f"No client defiend for target {self.target_name}")
                 return
             # test the part after polling separately for each client
-            for client in self.target.get("clients"):
-                self.clear_hash()
-                ret = self.run_interceptor_vanilla(False, client)
-                if ret == 0:
-                    log.info(f"vanilla cov run success, before_poll = false")
-                vanilla_list = self.parse_supported_hash(vanilla=False)
-                if vanilla_list is None:
-                    log.error("failed to get vanilla list after poll, terminate")
-                    self.clear_exit()
-                print(f'size of vanilla_list is: {len(vanilla_list)} after poll,  size of overallset is {len(self.coverage_dict)}')
-                # update overall_set
-                self.overall_set.update(vanilla_list.keys())
-                # store coverage
-                self.store_syscall_coverage()
+            client = self.target.get("clients")[0]
 
-                # run fuzzer
-                self.recursive_fuzz_main_loop(vanilla_list, False, client)
+        # run the vanilla version first, always use one run
+        ret = self.run_interceptor_vanilla(False, client)
+        if ret == 0:
+            log.info(f"vanilla cov run success ! ")
+        # generate vanila syscall list
+        vanilla_list = self.parse_supported_hash(vanilla=True)
+        # update overall set
+        self.overall_set.update(vanilla_list.keys())
+        print(f'size of vanilla_list is: {len(vanilla_list)}, size of overallset is {len(self.coverage_dict)}')
+        if vanilla_list is None:
+            log.error("failed to get vanilla list, terminate")
+            self.clear_exit()
+        # store coverage
+        self.store_syscall_coverage()
+        self.recursive_fuzz_main_loop(vanilla_list, False, client)
+
 
     def run_sc_cov(self):
         log.info(f"running sc cov test")
@@ -1169,6 +1144,7 @@ class Fuzzer:
             log.info(f"vanilla run success, before_poll = {before_poll}")
         # run the test version
         self.run_interceptor_fuzz(before_poll, client)
+
 
     def run_interceptor_vanilla(self, before_poll=True, client=None, origin=False):
         if self.setup_func is not None:
@@ -1548,8 +1524,8 @@ class Fuzzer:
         if self.server:
             cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
             strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
-        if not before_poll and client is not None:
-            strace_cmd = f"{strace_cmd} -l"
+        # if not before_poll and client is not None:
+        #     strace_cmd = f"{strace_cmd} -l"
 
         #  -G means start fuzzing -R means recursive fuzz, provide ref file
         strace_cmd = f"{strace_cmd} -G -R {self.reference_file}"
