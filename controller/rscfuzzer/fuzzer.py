@@ -18,6 +18,7 @@ import resource
 import mmh3
 import magic
 import re
+from enum import Enum
 from rscfuzzer.target import targets
 
 log = logging.getLogger(__name__)
@@ -27,6 +28,13 @@ hash_file_f = "hash_f.txt"
 coverage_file = "coverage.txt"
 
 ld_cmd = "LD_LIBRARY_PATH=/home/gavin/libunwind/build/usr/local/lib"
+
+
+class ValueMethod(Enum):
+    VALUE_ALL = 0
+    VALUE_RANDOM = 1
+    VALUE_INVALID = 2
+
 class Fuzzer:
     def __init__(self, config, target_name, start_skip=0):
         self.config = config
@@ -271,6 +279,15 @@ class Fuzzer:
         resource.setrlimit(resource.RLIMIT_NOFILE, (1048576, 1048576))
         soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
         log.warning(f'after set: soft = {soft}, hard = {hard}')
+
+        # get method to update value index
+        value_method_name = self.target.get("value_method", "VALUE_ALL")
+        if value_method_name not in ValueMethod.__members__:
+            log.error(f'{value_method_name} is not a valid value method')
+            self.value_method = ValueMethod.VALUE_ALL
+        else:
+            self.value_method = ValueMethod[value_method_name]
+        log.warning(f'value method set to {self.value_method}')
 
     def clear_time_measurement(self):
         self.accept_time = 0
@@ -838,6 +855,20 @@ class Fuzzer:
         new_value_list.extend(['MIN', 'MAX', random.randint(-sys.maxsize/2, sys.maxsize/2)])
         return new_value_list
 
+    def get_value_list(self, field_key, syscall_dict):
+        value_list = None
+        if self.value_method == ValueMethod.VALUE_ALL:
+            value_list = syscall_dict.get(field_key)
+            if value_list is None:
+                # dose not have value in valid set, create an empty one
+                value_list = []
+            value_list = self.extend_value_list(value_list)
+        elif self.value_method == ValueMethod.VALUE_RANDOM:
+            value_list = 3 * [random.randint(-sys.maxsize/2, sys.maxsize/2)]
+        elif self.value_method == ValueMethod.VALUE_INVALID:
+            value_list = ['MIN', 'MAX', random.randint(-sys.maxsize/2, sys.maxsize/2)]
+        return value_list
+
     def extract_value_from_index(self, index_target):
         syscall_name = index_target[0]
         field_index = index_target[2]
@@ -853,12 +884,9 @@ class Fuzzer:
         if syscall_dict is None:
             log.error(f'syscall {syscall_name} not found in value dict')
             self.clear_exit()
-        value_list = syscall_dict.get(field_key)
-        if value_list is None:
-            # dose not have value in valid set, create an empty one
-            value_list = []
-        value_list = self.extend_value_list(value_list)
-        # then get the value from the list
+
+        value_list = self.get_value_list(field_key, syscall_dict)
+
         if value_index >= len(value_list):
             log.error(f'value_index out of bound: {value_index}/{len(value_list)}')
             self.clear_exit()
@@ -883,11 +911,8 @@ class Fuzzer:
         if syscall_dict is None:
             log.error(f'syscall {syscall_name} not found in value dict')
             self.clear_exit()
-        value_list = syscall_dict.get(field_key)
-        if value_list is None:
-            # dose not have value in valid set, create an empty one
-            value_list = []
-        value_list = self.extend_value_list(value_list)
+
+        value_list = self.get_value_list(field_key, syscall_dict)
 
         # update value_index if possible
         if value_index + 1 < len(value_list):
