@@ -579,17 +579,22 @@ class Fuzzer:
             if m is None:
                 # not a recognized core dump file
                 log.error(f'core file not recoginized: {file}, type info: {type_info}, target = {targets}')
+                dst = os.path.join(self.store_core_dir, f"core.empty")
+                shutil.copy(file, dst)
+                dst = os.path.join(self.store_core_dir, f"strace.empty.txt")
+                shutil.copy(self.strace_log, dst)
                 continue
             # check if exec matches
             core_exec = m.group(1)
             if core_exec != self.executable:
                 log.error(f'core file does not belong to target binary: {core_exec}, target = {targets}')
-                continue
             # run gdb to get stack string using python script
             # make sure previous gdb session is killed
             # remove temp file if exist
             if os.path.exists(const.gdb_temp_file):
                 os.remove(const.gdb_temp_file)
+
+            core_binary = core_exec.split('/')[-1]
 
             self.kill_gdb()
             args_gdb = shlex.split(f'gdb {core_exec} {file} -q -x {const.gdb_script}')
@@ -616,7 +621,7 @@ class Fuzzer:
                 self.stack_set.add(hash)
                 log.info(f"new stack found:\n{data}")
                 log.debug(f'original core file = {file}')
-                hash_str = f'{hash}.{retcode}'
+                hash_str = f'{hash}.{retcode}.{core_binary}'
                 # store the core with records
                 dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
                 shutil.copy(file, dst)

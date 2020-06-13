@@ -12,3 +12,4 @@ six==1.14.0
 psutil==5.7.0
 python-magic==0.4.18
 mmh3==2.5.1
+matplotlib==3.2.1
