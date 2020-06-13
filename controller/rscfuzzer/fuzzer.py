@@ -1056,8 +1056,7 @@ class Fuzzer:
                 if ret == 0:
                     log.info(f"vanilla cov run success (get unsupport list), before_poll = false")
                 self.parse_and_get_unsupported_set()
-        print('unsupported syscalls:')
-        print(self.unsupported_syscalls)
+        log.warning(f'unsupported syscalls:\n{self.unsupported_syscalls}')
 
     def run_recursive_fuzz(self):
         log.info(f"running recursive fuzzer")
