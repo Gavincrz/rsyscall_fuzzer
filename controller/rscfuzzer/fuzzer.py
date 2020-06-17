@@ -910,6 +910,8 @@ class Fuzzer:
         if field_index >= len(syscall_field_list):
             log.error(f'field_index out of bound: {field_index}/{len(syscall_field_list)}')
             self.clear_exit()
+        if self.field_method == FieldMethod.FIELD_ALL:
+            return (len(syscall_field_list)-1) * [self.get_random_int()]
         # append _v to the field name
         field_key = f'{syscall_field_list[field_index]}_v'
         # check if value index out of bound
