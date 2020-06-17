@@ -1591,7 +1591,8 @@ class Fuzzer:
         # the value string for FIELD_ALL will contain all the values joined with @
         if self.field_method == FieldMethod.FIELD_ALL:
             sep = '@'
-            value_string = sep.join(value_target[3])
+            value_list_string = map(str, value_target[3])
+            value_string = sep.join(value_list_string)
         return f'{value_target[0]} {value_target[1]} {value_target[2]} {value_string}\n'
 
     def run_fuzzer_with_targets(self, value_targets, before_poll, client):
