@@ -911,7 +911,7 @@ class Fuzzer:
             log.error(f'field_index out of bound: {field_index}/{len(syscall_field_list)}')
             self.clear_exit()
         if self.field_method == FieldMethod.FIELD_ALL:
-            return (len(syscall_field_list)-1) * [self.get_random_int()]
+            return len(syscall_field_list) * [self.get_random_int()]
         # append _v to the field name
         field_key = f'{syscall_field_list[field_index]}_v'
         # check if value index out of bound
@@ -980,7 +980,7 @@ class Fuzzer:
             value_target[3] = value_list[value_index]
         elif self.field_method == FieldMethod.FIELD_ALL:
             value_target[2] = -1
-            value_target[3] = (max_field_index-1)*[self.get_random_int()]
+            value_target[3] = max_field_index * [self.get_random_int()]
         return 0
 
     '''an recursive function'''
