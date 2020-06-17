@@ -874,7 +874,7 @@ class Fuzzer:
     def extend_value_list(self, value_list):
         # deep copy
         new_value_list = copy.deepcopy(value_list)
-        new_value_list.extend(['MIN', 'MAX', random.randint(-sys.maxsize/2, sys.maxsize/2)])
+        new_value_list.extend(['MIN', 'MAX', random.randint(const.INT_MIN, const.INT_MAX)])
         return new_value_list
 
     def get_random_int(self):
@@ -911,7 +911,10 @@ class Fuzzer:
             log.error(f'field_index out of bound: {field_index}/{len(syscall_field_list)}')
             self.clear_exit()
         if self.field_method == FieldMethod.FIELD_ALL:
-            return len(syscall_field_list) * [self.get_random_int()]
+            output_value_list = []
+            for i in range(0, len(syscall_field_list)):
+                output_value_list.append(self.get_random_int())
+            return output_value_list
         # append _v to the field name
         field_key = f'{syscall_field_list[field_index]}_v'
         # check if value index out of bound
@@ -980,7 +983,7 @@ class Fuzzer:
             value_target[3] = value_list[value_index]
         elif self.field_method == FieldMethod.FIELD_ALL:
             value_target[2] = -1
-            value_target[3] = max_field_index * [self.get_random_int()]
+            value_target[3] = self.extract_value_from_index(index_target)
         return 0
 
     '''an recursive function'''
