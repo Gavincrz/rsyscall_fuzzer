@@ -35,6 +35,11 @@ class ValueMethod(Enum):
     VALUE_RANDOM = 1
     VALUE_INVALID = 2
 
+class FieldMethod(Enum):
+    FIELD_ITER = 0
+    FIELD_RANDOM = 1
+    FIELD_ALL = 2
+
 class Fuzzer:
     def __init__(self, config, target_name, start_skip=0):
         self.config = config
@@ -288,6 +293,18 @@ class Fuzzer:
         else:
             self.value_method = ValueMethod[value_method_name]
         log.warning(f'value method set to {self.value_method}')
+
+        # get method to update field index
+        field_method_name = self.target.get("field_method", "FIELD_ITER")
+        if field_method_name not in FieldMethod.__members__:
+            log.error(f'{field_method_name} is not a valid field method')
+            self.field_method = FieldMethod.FIELD_ITER
+        else:
+            self.field_method = FieldMethod[field_method_name]
+            if self.field_method != FieldMethod.FIELD_ITER:
+                self.value_method = ValueMethod.VALUE_RANDOM
+                log.warning(f'value method reset to {self.value_method} because of field method')
+        log.warning(f'field method set to {self.field_method}')
 
     def clear_time_measurement(self):
         self.accept_time = 0
@@ -860,18 +877,29 @@ class Fuzzer:
         new_value_list.extend(['MIN', 'MAX', random.randint(-sys.maxsize/2, sys.maxsize/2)])
         return new_value_list
 
+    def get_random_int(self):
+        random_list = [random.randint(const.INT_MIN, const.INT_MAX),
+                      random.randint(const.SHRT_MIN, const.SHRT_MAX),
+                      random.randint(-sys.maxsize/2, sys.maxsize/2)]
+        return random.choice(random_list)
+
     def get_value_list(self, field_key, syscall_dict):
         value_list = None
         if self.value_method == ValueMethod.VALUE_ALL:
+            if field_key is None or syscall_dict is None:
+                log.error(f'field_key and sycall_dict should not be none for value_all method')
+                self.clear_exit()
             value_list = syscall_dict.get(field_key)
             if value_list is None:
                 # dose not have value in valid set, create an empty one
                 value_list = []
             value_list = self.extend_value_list(value_list)
         elif self.value_method == ValueMethod.VALUE_RANDOM:
-            value_list = 3 * [random.randint(-sys.maxsize/2, sys.maxsize/2)]
+            value_list = [random.randint(const.INT_MIN, const.INT_MAX),
+                          random.randint(const.SHRT_MIN, const.SHRT_MAX),
+                          random.randint(-sys.maxsize/2, sys.maxsize/2)]
         elif self.value_method == ValueMethod.VALUE_INVALID:
-            value_list = ['MIN', 'MAX', random.randint(-sys.maxsize/2, sys.maxsize/2)]
+            value_list = ['MIN', 'MAX', random.randint(const.INT_MIN, const.INT_MAX)]
         return value_list
 
     def extract_value_from_index(self, index_target):
@@ -904,18 +932,25 @@ class Fuzzer:
         value_index = index_target[3]
 
         syscall_field_list = const.syscall_field_index[syscall_name]
-        if field_index >= len(syscall_field_list):
-            log.error(f'field_index out of bound: {field_index}/{len(syscall_field_list)}')
-            self.clear_exit()
+        max_field_index = len(syscall_field_list)
+        field_key = None
+        syscall_dict = None
+        if self.field_method == FieldMethod.FIELD_ITER:
+            max_field_index = len(syscall_field_list)
+            if field_index >= max_field_index:
+                log.error(f'field_index out of bound: {field_index}/{max_field_index}')
+                self.clear_exit()
 
-        # append _v to the field name
-        field_key = f'{syscall_field_list[field_index]}_v'
+            # append _v to the field name
+            field_key = f'{syscall_field_list[field_index]}_v'
 
-        # check if value index out of bound
-        syscall_dict = self.value_dict.get(syscall_name)
-        if syscall_dict is None:
-            log.error(f'syscall {syscall_name} not found in value dict')
-            self.clear_exit()
+            # check if value index out of bound
+            syscall_dict = self.value_dict.get(syscall_name)
+            if syscall_dict is None:
+                log.error(f'syscall {syscall_name} not found in value dict')
+                self.clear_exit()
+        elif self.field_method == FieldMethod.FIELD_RANDOM:
+            max_field_index = const.RANDOM_REPEAT
 
         value_list = self.get_value_list(field_key, syscall_dict)
 
@@ -923,7 +958,7 @@ class Fuzzer:
         if value_index + 1 < len(value_list):
             value_index += 1
         # value index cannot increase further, increment field index
-        elif field_index + 1 < len(syscall_field_list):
+        elif field_index + 1 < max_field_index:
             field_index += 1
             value_index = 0
         else:
@@ -934,9 +969,16 @@ class Fuzzer:
         index_target[2] = field_index
         index_target[3] = value_index
 
-        value_target[2] = field_index
-        value_target[3] = self.extract_value_from_index(index_target)
-
+        # update value target
+        if self.field_method == FieldMethod.FIELD_ITER:
+            value_target[2] = field_index
+            value_target[3] = value_list[value_index]
+        elif self.field_method == FieldMethod.FIELD_RANDOM:
+            value_target[2] = random.randrange(max_field_index)
+            value_target[3] = value_list[value_index]
+        elif self.field_method == FieldMethod.FIELD_ALL:
+            value_target[2] = -1
+            value_target[3] = (max_field_index-1)*[self.get_random_int()]
         return 0
 
     '''an recursive function'''
@@ -1542,12 +1584,20 @@ class Fuzzer:
             if should_increase:
                 skip_count = skip_count+1
 
+    def convert_value_target_to_string(self, value_target):
+        value_string = f'{value_target[3]}'
+        # the value string for FIELD_ALL will contain all the values joined with @
+        if self.field_method == FieldMethod.FIELD_ALL:
+            sep = '@'
+            value_string = sep.join(value_target[3])
+        return f'{value_target[0]} {value_target[1]} {value_target[2]} {value_string}\n'
+
     def run_fuzzer_with_targets(self, value_targets, before_poll, client):
         # write the fuzzing target into file
         with open(self.reference_file, 'w+') as f:
             for value_target in value_targets:
                 # syscall, hash, field_idnex, value
-                f.write(f'{value_target[0]} {value_target[1]} {value_target[2]} {value_target[3]}\n')
+                f.write(self.convert_value_target_to_string(value_target))
         # construct strace command
         strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
         if self.server:

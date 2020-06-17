@@ -51,6 +51,14 @@ all_syscall = ["read", "write", "open", "close", "stat", "fstat", "lstat", "poll
                'recvmmsg', 'fanotify_init', 'fanotify_mark', 'prlimit', 'name_to_handle_at', 'open_by_handle_at',
                'clock_adjtime', 'syncfs', 'sendmmsg', 'setns']
 
+
+INT_MIN = -2147483648
+INT_MAX = 2147483647
+SHRT_MIN = -32768
+SHRT_MAX = 32767
+
+RANDOM_REPEAT = 3
+
 # this must match order in strace, maybe use a json for this
 syscall_field_index = {
     "read": ["ret"],
