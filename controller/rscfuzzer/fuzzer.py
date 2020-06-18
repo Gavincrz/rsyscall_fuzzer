@@ -591,7 +591,11 @@ class Fuzzer:
                 core_list.append(os.path.join(self.core_dir, f))
         for file in core_list:
             # get the type of core dump and
-            type_info = magic.from_file(file)
+            try:
+                type_info = magic.from_file(file)
+            except Exception as e:
+                log.error(f'error read file type: {e}')
+                continue
             m = re.search(r"execfn: \'(\S+)\'", type_info)
             if m is None:
                 # not a recognized core dump file
