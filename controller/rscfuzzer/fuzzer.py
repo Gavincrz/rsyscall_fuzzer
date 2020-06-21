@@ -1221,7 +1221,7 @@ class Fuzzer:
             # for each skip_count increase
             result_list = []
             num_new_invocation = 0
-            min_syscount = 0
+            min_syscount = -1
             for i in range(self.iteration):
                 # do the fuzzing
                 fuzz_ret_code, retcode = self.run_fuzzer_with_targets(None, False, client, target_syscall, skip_count)
@@ -1245,6 +1245,8 @@ class Fuzzer:
 
                 # get the syscall count returned by strace
                 syscount = self.get_syscall_count()
+                if min_syscount == -1:
+                    min_syscount = syscount
                 min_syscount = min(syscount, min_syscount)
             log.info(f"result list for {target_syscall}:{skip_count} is {result_list}")
             # decide if we should increase and how to increase
