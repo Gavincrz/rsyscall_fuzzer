@@ -1221,7 +1221,7 @@ class Fuzzer:
             # for each skip_count increase
             result_list = []
             num_new_invocation = 0
-            max_syscount = 0
+            min_syscount = 0
             for i in range(self.iteration):
                 # do the fuzzing
                 fuzz_ret_code, retcode = self.run_fuzzer_with_targets(None, False, client, target_syscall, skip_count)
@@ -1245,7 +1245,7 @@ class Fuzzer:
 
                 # get the syscall count returned by strace
                 syscount = self.get_syscall_count()
-                max_syscount = max(syscount, max_syscount)
+                min_syscount = min(syscount, min_syscount)
             log.info(f"result list for {target_syscall}:{skip_count} is {result_list}")
             # decide if we should increase and how to increase
             # stop increase if skip_count > invocation*1.2 in vanilla run and no new invocation found
@@ -1256,11 +1256,11 @@ class Fuzzer:
                 if self.skip_method == SkipMethod.SKIP_ONE:
                     skip_count = skip_count + 1
                 elif self.skip_method == SkipMethod.SKIP_FAIL:
-                    if max_syscount <= skip_count:
-                        log.error(f'how could max_syscount {max_syscount} smaller than skip_count{skip_count}')
+                    if min_syscount <= skip_count:
+                        log.error(f'how could max_syscount {min_syscount} smaller than skip_count{skip_count}')
                         skip_count = skip_count + 1
                     else:
-                        skip_count = max_syscount
+                        skip_count = min_syscount
 
             self.store_syscall_coverage()
 
@@ -1904,7 +1904,7 @@ class Fuzzer:
                             os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                             fuzz_ret_code = FuzzResult.FUZZ_CLIENTFAIL
                             try:
-                                self.srv_p.wait(5)  # wait until strace properly save the output
+                                self.srv_p.wait(8)  # wait until strace properly save the output
                             except:
                                 log.debug("server terminate timeout, force kill")
                                 self.kill_servers()
@@ -1918,7 +1918,7 @@ class Fuzzer:
                                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                                     fuzz_ret_code = FuzzResult.FUZZ_EXECTIMEOUT
                                     try:
-                                        self.srv_p.wait(5)  # wait until cov properly save the output
+                                        self.srv_p.wait(8)  # wait until cov properly save the output
                                     except:
                                         log.error("server terminate time out, force kill")
                                         self.kill_servers()
@@ -1930,7 +1930,7 @@ class Fuzzer:
                             else:
                                 os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                                 try:
-                                    self.srv_p.wait(5)  # wait until cov properly save the output
+                                    self.srv_p.wait(8)  # wait until cov properly save the output
                                 except:
                                     log.error("server terminate time out, force kill")
                                     self.kill_servers()
