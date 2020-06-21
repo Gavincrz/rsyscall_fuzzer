@@ -1921,7 +1921,7 @@ class Fuzzer:
                                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                                     fuzz_ret_code = FuzzResult.FUZZ_EXECTIMEOUT
                                     try:
-                                        self.srv_p.wait(15)  # wait until cov properly save the output
+                                        self.srv_p.wait(20)  # wait until cov properly save the output
                                     except:
                                         log.error("server terminate time out, force kill")
                                         self.kill_servers()
@@ -1933,7 +1933,7 @@ class Fuzzer:
                             else:
                                 os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                                 try:
-                                    self.srv_p.wait(15)  # wait until cov properly save the output
+                                    self.srv_p.wait(20)  # wait until cov properly save the output
                                 except:
                                     log.error("server terminate time out, force kill")
                                     self.kill_servers()
