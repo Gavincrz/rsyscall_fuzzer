@@ -1246,7 +1246,7 @@ class Fuzzer:
                 # get the syscall count returned by strace
                 syscount = self.get_syscall_count()
                 max_syscount = max(syscount, max_syscount)
-
+            log.info(f"result list for {target_syscall}:{skip_count} is {result_list}")
             # decide if we should increase and how to increase
             # stop increase if skip_count > invocation*1.2 in vanilla run and no new invocation found
             if skip_count > vanill_invocation * 1.2 and num_new_invocation == 0:
