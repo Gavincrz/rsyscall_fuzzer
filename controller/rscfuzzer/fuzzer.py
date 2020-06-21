@@ -701,7 +701,7 @@ class Fuzzer:
         return len(core_list)
 
 
-    def handle_core_dump(self, retcode=None, targets=None):
+    def handle_core_dump(self, retcode=None, targets=None, skip_count=-1):
         core_list = []
         # log.info("handle core dump")
         for f in os.listdir(self.core_dir):
@@ -761,7 +761,8 @@ class Fuzzer:
                 dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
                 shutil.copy(file, dst)
                 log.info(f"core file stored to {dst}")
-                log.error(f"New Core Found: stored to {dst}, retcode=[{retcode}], targets=[{targets}]")
+                log.error(f"New Core Found: stored to {dst}, retcode=[{retcode}], "
+                          f"targets=[{targets}], skip_count=[{skip_count}]")
                 # copy the record file as well
                 dst = os.path.join(self.store_core_dir, f"record.{hash_str}.txt")
                 shutil.copy(self.record_file, dst)
@@ -1710,7 +1711,7 @@ class Fuzzer:
                                             should_increase = True
 
                 # handle core dumped
-                core_ret = self.handle_core_dump()
+                core_ret = self.handle_core_dump(skip_count=skip_count)
                 if core_ret is None:
                     print("are you kiddingme ? how could this be NOne?")
                 elif core_ret > 0:
