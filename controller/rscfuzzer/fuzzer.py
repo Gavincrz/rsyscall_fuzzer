@@ -294,7 +294,7 @@ class Fuzzer:
 
         # syscall_set contain all syscalls in the application
         self.unsupported_syscalls = set()
-
+        self.vanilla_list = None
         # print unsupported syscalls
         self.get_unsupported_syscalls()
         self.max_depth = self.config.get('max_depth', 50)
@@ -338,7 +338,6 @@ class Fuzzer:
             self.order_method = OrderMethod[order_method_name]
         log.warning(f'order method set to {self.order_method}')
 
-        self.vanilla_list = None
 
         skip_method_name = self.target.get("skip_method", "SKIP_FAIL")
         if skip_method_name not in SkipMethod.__members__:
