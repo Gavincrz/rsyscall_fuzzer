@@ -1920,16 +1920,8 @@ class Fuzzer:
                                     self.srv_p.wait(5)  # wait until strace properly save the output
                                 except:
                                     pass
-                            try:
-                                os.kill(self.srv_p.pid, signal.SIGTERM)
-                            except:
-                                pass
                             fuzz_ret_code = FuzzResult.FUZZ_CLIENTFAIL
-                            try:
-                                self.srv_p.wait(8)  # wait until strace properly save the output
-                            except Exception as e:
-                                log.debug(f"server terminate timeout, force kill {e}")
-                                self.kill_servers()
+                            self.kill_servers()
                             log.debug(f"server terminated ... ")
                         else:  # client success, check state of server
                             if self.retcode is not None: # server should exit
@@ -1950,12 +1942,7 @@ class Fuzzer:
                                         fuzz_ret_code = FuzzResult.FUZZ_RETNOTMATCH
                             # if server suppose to run inifinitely, just kill it
                             else:
-                                os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
-                                try:
-                                    self.srv_p.wait(8)  # wait until cov properly save the output
-                                except:
-                                    log.error("server terminate time out, force kill")
-                                    self.kill_servers()
+                                self.kill_servers()
 
         # handle core dumped
         core_ret = self.handle_core_dump_script(retcode, value_targets, skip_count)
