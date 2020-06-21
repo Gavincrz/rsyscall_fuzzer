@@ -35,10 +35,33 @@ class ValueMethod(Enum):
     VALUE_RANDOM = 1
     VALUE_INVALID = 2
 
+
 class FieldMethod(Enum):
     FIELD_ITER = 0
     FIELD_RANDOM = 1
     FIELD_ALL = 2
+
+
+class OrderMethod(Enum):
+    ORDER_RECUR = 0
+    ORDER_SEP = 1
+    ORDER_ALL = 2
+
+class SkipMethod(Enum):
+    SKIP_FAIL = 0
+    SKIP_ONE = 1
+
+class FuzzResult(Enum):
+    FUZZ_SUCCESS = 0
+    FUZZ_SIGTIMEOUT = 1
+    FUZZ_ERROR = 2
+    FUZZ_EXECTIMEOUT = 3
+    FUZZ_RETNOTMATCH = 4
+    FUZZ_EXITB4POLL = 5
+    FUZZ_COREDUMP = 6
+    FUZZ_EXITB4CLIENT = 7
+    FUZZ_CLIENTFAIL = 8
+
 
 class Fuzzer:
     def __init__(self, config, target_name, start_skip=0):
@@ -116,12 +139,13 @@ class Fuzzer:
             sys.exit("syscall config file not provided")
 
         self.record_file = self.config.get("record_file", None)
+        self.count_file = self.config.get("count_file", "count.txt")
 
         self.iteration = self.config.get("num_iteration", 20)
         target_iteration = self.target.get("num_iteration", None)
         if target_iteration is not None:
             self.iteration = target_iteration
-
+        log.warning(f'number of iteration for each skip count set to {self.iteration}')
         self.setup_func = self.target.get("setup_func", None)
 
         self.core_dir = self.config.get("core_dir", "cores")
@@ -305,6 +329,24 @@ class Fuzzer:
                 self.value_method = ValueMethod.VALUE_RANDOM
                 log.warning(f'value method reset to {self.value_method} because of field method')
         log.warning(f'field method set to {self.field_method}')
+
+        order_method_name = self.target.get("order_method", "ORDER_RECUR")
+        if order_method_name not in OrderMethod.__members__:
+            log.error(f'{order_method_name} is not a valid order method')
+            self.order_method = OrderMethod.ORDER_RECUR
+        else:
+            self.order_method = OrderMethod[order_method_name]
+        log.warning(f'order method set to {self.order_method}')
+
+        self.vanilla_list = None
+
+        skip_method_name = self.target.get("skip_method", "SKIP_FAIL")
+        if skip_method_name not in SkipMethod.__members__:
+            log.error(f'{skip_method_name} is not a valid skip method')
+            self.skip_method = SkipMethod.SKIP_FAIL
+        else:
+            self.skip_method = SkipMethod[skip_method_name]
+        log.warning(f'skip method set to {self.skip_method}')
 
     def clear_time_measurement(self):
         self.accept_time = 0
@@ -1086,12 +1128,15 @@ class Fuzzer:
 
 
     def parse_and_get_unsupported_set(self):
+        self.vanilla_list = []
         with open(self.hash_file) as fp:
             lines = fp.readlines()
             for line in lines:
                 syscall, hash_str, stack = self.parse_syscall_stack_string_hash(line)
                 if syscall not in self.supported:
                     self.unsupported_syscalls.add(syscall)
+                else:
+                    self.vanilla_list.append(syscall)
 
     def get_unsupported_syscalls(self):
         print('getting unsupported syscall set')
@@ -1140,8 +1185,96 @@ class Fuzzer:
             self.clear_exit()
         # store coverage
         self.store_syscall_coverage()
-        self.recursive_fuzz_main_loop(vanilla_list, False, client)
 
+        # start fuzzing
+        if self.order_method == OrderMethod.ORDER_RECUR:
+            self.recursive_fuzz_main_loop(vanilla_list, False, client)
+        elif self.order_method == OrderMethod.ORDER_SEP:
+            self.sep_fuzz_main_loop(client)
+        elif self.order_method == OrderMethod.ORDER_ALL:
+            self.all_fuzz_main_loop(client)
+
+    def get_syscall_count(self):
+        try:
+            with open(self.count_file, 'r') as f:
+                data = f.read()
+                return int(data)
+        except Exception as e:
+            log.error(f"read count_file failed {e}")
+            return -2
+
+    def blind_fuzz_loop(self, client, target_syscall):
+        # initialize the skip count
+        skip_count = 0
+        should_increase = True
+        # get the max invocation of target from vanilla call:
+        vanill_invocation = len(self.vanilla_list)
+        if target_syscall is not None:
+            vanill_invocation = 0
+            for syscall in self.vanilla_list:
+                if syscall == target_syscall:
+                    vanill_invocation += 1
+        log.warning(f"max invocation for target{target_syscall} is {vanill_invocation}")
+
+        while should_increase:
+            should_increase = False
+            # for each skip_count increase
+            result_list = []
+            num_new_invocation = 0
+            max_syscount = 0
+            for i in range(self.iteration):
+                # do the fuzzing
+                fuzz_ret_code, retcode = self.run_fuzzer_with_targets(None, False, client, target_syscall, skip_count)
+
+                # parse newly found syscalls:
+                new_syscall_dict = self.parse_supported_hash()
+
+                if new_syscall_dict is None:
+                    log.error('new_syscall_dict should not be none without target')
+
+                if len(new_syscall_dict) > 0:
+                    # update overall set
+                    self.overall_set.update(new_syscall_dict.keys())
+                    log.debug(f"{len(new_syscall_dict)} new invocation found")
+                    log.info(f"number of overallset = {len(self.overall_set)}")
+                    num_new_invocation += len(new_syscall_dict)
+
+                result_list.append((fuzz_ret_code, retcode, len(new_syscall_dict)))
+                if fuzz_ret_code != FuzzResult.FUZZ_SUCCESS:
+                    should_increase = True
+
+                # get the syscall count returned by strace
+                syscount = self.get_syscall_count()
+                max_syscount = max(syscount, max_syscount)
+
+            # decide if we should increase and how to increase
+            # stop increase if skip_count > invocation*1.2 in vanilla run and no new invocation found
+            if skip_count > vanill_invocation * 1.2 and num_new_invocation == 0:
+                should_increase = False
+            if should_increase:
+                # increase the skip count:
+                if self.skip_method == SkipMethod.SKIP_ONE:
+                    skip_count = skip_count + 1
+                elif self.skip_method == SkipMethod.SKIP_FAIL:
+                    if max_syscount <= skip_count:
+                        log.error(f'how could max_syscount {max_syscount} smaller than skip_count{skip_count}')
+                        skip_count = skip_count + 1
+                    else:
+                        skip_count = max_syscount
+
+            self.store_syscall_coverage()
+
+    # main loop of fuzz each syscall separately
+    def sep_fuzz_main_loop(self, client):
+        # for each supported syscall in vanilla run, do the fuzz
+        for i in range(len(self.supported)):
+            target_syscall = self.supported[i]
+            log.warning(f'start fuzz syscall {target_syscall} ({i}/{len(self.supported)})')
+            self.blind_fuzz_loop(client, target_syscall)
+
+    # main loop of fuzz all syscall
+    def all_fuzz_main_loop(self, client):
+        self.blind_fuzz_loop(client, None)
 
     def run_sc_cov(self):
         log.info(f"running sc cov test")
@@ -1602,22 +1735,28 @@ class Fuzzer:
             value_string = sep.join(value_list_string)
         return f'{value_target[0]} {value_target[1]} {value_target[2]} {value_string}\n'
 
-    def run_fuzzer_with_targets(self, value_targets, before_poll, client):
-        # write the fuzzing target into file
-        with open(self.reference_file, 'w+') as f:
-            for value_target in value_targets:
-                # syscall, hash, field_idnex, value
-                f.write(self.convert_value_target_to_string(value_target))
+    def run_fuzzer_with_targets(self, value_targets, before_poll, client, target_syscall=None, skip_count=-1):
+        if value_targets is None and self.order_method == OrderMethod.ORDER_RECUR:
+            log.error('value_target should not be none for recursive fuzz')
+            self.clear_exit()
+        if value_targets is not None:
+            # write the fuzzing target into file
+            with open(self.reference_file, 'w+') as f:
+                for value_target in value_targets:
+                    # syscall, hash, field_idnex, value
+                    f.write(self.convert_value_target_to_string(value_target))
         # construct strace command
         strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
         if self.server:
             cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
             strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
-        # if not before_poll and client is not None:
-        #     strace_cmd = f"{strace_cmd} -l"
 
-        #  -G means start fuzzing -R means recursive fuzz, provide ref file
-        strace_cmd = f"{strace_cmd} -G -R {self.reference_file}"
+        #  -G means start fuzzing
+        strace_cmd = f"{strace_cmd} -G"
+
+        # -R means recursive fuzz, provide ref file
+        if value_targets is not None:
+            strace_cmd = f"{strace_cmd} -R {self.reference_file}"
 
         # add record file if set
         if self.record_file is not None:
@@ -1627,6 +1766,22 @@ class Fuzzer:
         strace_cmd = f"{strace_cmd} -n {self.hash_file}"
         if self.accept_hash > 0:
             strace_cmd = f"{strace_cmd} -Q {self.accept_hash}"
+
+        # fuzz all or fuzz separately, need to provide a supported syscall list for fuzz all
+        if self.order_method == OrderMethod.ORDER_ALL:
+            strace_cmd = f"{strace_cmd} -H ALL -K {os.path.abspath(self.syscall_config)}"
+        elif self.order_method == OrderMethod.ORDER_SEP:
+            if target_syscall is None:
+                log.error('target sys call should not be none for ORDER_SEP')
+                self.clear_exit()
+            strace_cmd = f"{strace_cmd} -H {target_syscall}"
+
+        if self.order_method == OrderMethod.ORDER_ALL or self.order_method == OrderMethod.ORDER_SEP:
+            # should always have a skip_count for those two method, and always have a count_file specified
+            if skip_count == -1:
+                log.error(f'skip count must be set for order method: {self.order_method}')
+                self.clear_exit()
+            strace_cmd = f"{strace_cmd} -B {skip_count} -N {os.path.abspath(self.count_file)}"
 
         strace_cmd = f"{strace_cmd} {self.command}"
 
@@ -1648,6 +1803,7 @@ class Fuzzer:
         self.kill_servers()
         # initialize the retcode with a magic number
         retcode = 10086
+        fuzz_ret_code = FuzzResult.FUZZ_SUCCESS
         if self.setup_func is not None:
             self.setup_func()
 
@@ -1668,7 +1824,8 @@ class Fuzzer:
             proc = psutil.Process()
             log.error(f'opened files: {proc.open_files()}, too many open file?')
             self.kill_servers()
-            return
+            fuzz_ret_code = FuzzResult.FUZZ_ERROR
+            return fuzz_ret_code, retcode
 
         if not self.server:
             if self.input:
@@ -1678,9 +1835,11 @@ class Fuzzer:
             except subprocess.TimeoutExpired:
                 # timeout, kill the program
                 self.kill_servers()
+                fuzz_ret_code = FuzzResult.FUZZ_EXECTIMEOUT
             else:
                 if self.retcode != retcode:
                     self.kill_servers()
+                    fuzz_ret_code = FuzzResult.FUZZ_RETNOTMATCH
 
         else:  # handle servers
             # check if server exist before wait for signal (save time)
@@ -1689,6 +1848,7 @@ class Fuzzer:
             log.debug("check server exist before wait for signal")
             if retcode is not None:
                 log.debug('server exit before signal')
+                fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
             else:
                 # use polling instead of timeout
                 wait_start = time.time()
@@ -1702,13 +1862,16 @@ class Fuzzer:
                     retcode = self.srv_p.poll()
                     if retcode is not None:
                         log.debug(f'server terminated before reach accept, retcode = {retcode}')
+                        fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
                         break
                     wait_end = time.time()
                 signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
                 if ret is None:  # timeout
                     log.debug("signal timeout!")
                     retcode = self.srv_p.poll()
+                    fuzz_ret_code = FuzzResult.FUZZ_SIGTIMEOUT
                     if retcode is not None:
+                        fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
                         log.debug(f'server terminated before reach accept, retcode = {retcode}')
                     self.kill_servers()
                 else:
@@ -1739,6 +1902,7 @@ class Fuzzer:
                         if client_ret != 0:
                             log.debug(f"client failed, kill server, wait ... ")
                             os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                            fuzz_ret_code = FuzzResult.FUZZ_CLIENTFAIL
                             try:
                                 self.srv_p.wait(5)  # wait until strace properly save the output
                             except:
@@ -1752,6 +1916,7 @@ class Fuzzer:
                                 except (TimeoutError, subprocess.TimeoutExpired):
                                     log.debug("server still exist after client, try to terminate it ...")
                                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                    fuzz_ret_code = FuzzResult.FUZZ_EXECTIMEOUT
                                     try:
                                         self.srv_p.wait(5)  # wait until cov properly save the output
                                     except:
@@ -1759,6 +1924,8 @@ class Fuzzer:
                                         self.kill_servers()
                                 else:
                                     log.debug("server terminated!")
+                                    if retcode != self.retcode:
+                                        fuzz_ret_code = FuzzResult.FUZZ_RETNOTMATCH
                             # if server suppose to run inifinitely, just kill it
                             else:
                                 os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
@@ -1776,3 +1943,5 @@ class Fuzzer:
             log.error(f'Retcode is -11 but no core found, target = {value_targets}')
         elif core_ret > 0:
             self.kill_servers()
+            fuzz_ret_code = FuzzResult.FUZZ_COREDUMP
+        return fuzz_ret_code, retcode
