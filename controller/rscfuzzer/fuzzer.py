@@ -1909,12 +1909,15 @@ class Fuzzer:
                                     self.srv_p.wait(5)  # wait until strace properly save the output
                                 except:
                                     pass
-                            os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                            try:
+                                os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                            except:
+                                pass
                             fuzz_ret_code = FuzzResult.FUZZ_CLIENTFAIL
                             try:
                                 self.srv_p.wait(8)  # wait until strace properly save the output
-                            except:
-                                log.debug("server terminate timeout, force kill")
+                            except Exception as e:
+                                log.debug(f"server terminate timeout, force kill {e}")
                                 self.kill_servers()
                             log.debug(f"server terminated ... ")
                         else:  # client success, check state of server
