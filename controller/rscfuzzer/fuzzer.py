@@ -1257,14 +1257,19 @@ class Fuzzer:
 
                 # get the syscall count returned by strace
                 syscount = self.get_syscall_count()
+                if syscount == -1:
+                    log.error(f'syscall {target_syscall} not found')
                 if min_syscount == -1:
                     min_syscount = syscount
                 min_syscount = min(syscount, min_syscount)
             log.info(f"result list for {target_syscall}:{skip_count} is {result_list}")
-            # decide if we should increase and how to increase
-            # stop increase if skip_count > invocation*1.2 in vanilla run and no new invocation found
-            if skip_count > vanill_invocation * 1.2 and num_new_invocation == 0:
+            if min_syscount < 0:
                 should_increase = False
+            # decide if we should increase and how to increase
+            # stop increase if skip_count > invocation*1.5 in vanilla run and no new invocation found
+            if skip_count > vanill_invocation * 1.3 and num_new_invocation == 0 and should_increase:
+                should_increase = False
+                log.error(f'terminate because no new invocation found and skip count too larget')
             if should_increase:
                 # increase the skip count:
                 if self.skip_method == SkipMethod.SKIP_ONE:
@@ -1281,9 +1286,14 @@ class Fuzzer:
     # main loop of fuzz each syscall separately
     def sep_fuzz_main_loop(self, client):
         # for each supported syscall in vanilla run, do the fuzz
-        for i in range(len(self.supported)):
-            target_syscall = self.supported[i]
-            log.warning(f'start fuzz syscall {target_syscall} ({i}/{len(self.supported)})')
+        # extract syscall_list
+        fuzz_syscall_list = []
+        for syscall in self.supported:
+            if syscall in self.vanilla_list:
+                fuzz_syscall_list.append(syscall)
+        for i in range(len(fuzz_syscall_list)):
+            target_syscall = fuzz_syscall_list[i]
+            log.warning(f'start fuzz syscall {target_syscall} ({i}/{len(fuzz_syscall_list)})')
             self.blind_fuzz_loop(client, target_syscall)
 
     # main loop of fuzz all syscall
