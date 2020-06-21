@@ -604,6 +604,18 @@ class Fuzzer:
         """ kill all running server to avoid port unavaliable """
         if self.srv_p:
             try:
+                os.kill(self.srv_p.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                self.srv_p.kill()
+                self.srv_p = None
+
+            # wait for fewer seconds to terminate
+            try:
+                self.srv_p.wait(8)  # wait until cov properly save the output
+            except:
+                log.error("server terminate time out, force kill")
+
+            try:
                 os.killpg(os.getpgid(self.srv_p.pid), signal.SIGKILL)
             except ProcessLookupError:
                 self.srv_p.kill()
@@ -1910,7 +1922,7 @@ class Fuzzer:
                                 except:
                                     pass
                             try:
-                                os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                os.kill(self.srv_p.pid, signal.SIGTERM)
                             except:
                                 pass
                             fuzz_ret_code = FuzzResult.FUZZ_CLIENTFAIL
@@ -1926,7 +1938,7 @@ class Fuzzer:
                                     retcode = self.srv_p.wait(timeout=self.timeout)
                                 except (TimeoutError, subprocess.TimeoutExpired):
                                     log.debug("server still exist after client, try to terminate it ...")
-                                    os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
+                                    os.kill(self.srv_p.pid, signal.SIGTERM)
                                     fuzz_ret_code = FuzzResult.FUZZ_EXECTIMEOUT
                                     try:
                                         self.srv_p.wait(8)  # wait until cov properly save the output
