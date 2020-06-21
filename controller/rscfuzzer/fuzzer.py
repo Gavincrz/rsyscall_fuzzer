@@ -610,7 +610,7 @@ class Fuzzer:
 
             # wait for fewer seconds to terminate
             try:
-                self.srv_p.wait(8)  # wait until cov properly save the output
+                self.srv_p.wait(20)  # wait until cov properly save the output
             except:
                 log.error("server terminate time out, force kill")
 
