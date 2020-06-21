@@ -1216,6 +1216,7 @@ class Fuzzer:
         log.warning(f"max invocation for target{target_syscall} is {vanill_invocation}")
 
         while should_increase:
+            log.warning('skip count = ')
             should_increase = False
             # for each skip_count increase
             result_list = []
