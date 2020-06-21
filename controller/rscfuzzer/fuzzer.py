@@ -607,7 +607,6 @@ class Fuzzer:
                 os.kill(self.srv_p.pid, signal.SIGTERM)
             except ProcessLookupError:
                 self.srv_p.kill()
-                self.srv_p = None
 
             # wait for fewer seconds to terminate
             try:
