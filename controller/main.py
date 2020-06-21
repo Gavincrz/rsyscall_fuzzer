@@ -7,6 +7,7 @@ import sys
 import signal
 import pickle
 import os
+import traceback
 from rscfuzzer.target import targets
 from rscfuzzer.fuzzer import Fuzzer
 from rscfuzzer.syscount import *
@@ -98,6 +99,7 @@ def parse_syscov(file1, file2):
 def signal_handler(sig, frame):
     global sc_fuzzer
     print('You pressed Ctrl+C, kill running servers')
+    traceback.print_stack()
     if sc_fuzzer:
         sc_fuzzer.clear_exit()
     sys.exit(0)

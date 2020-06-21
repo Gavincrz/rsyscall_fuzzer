@@ -1278,6 +1278,10 @@ class Fuzzer:
                     if min_syscount <= skip_count:
                         log.error(f'how could max_syscount {min_syscount} smaller than skip_count{skip_count}')
                         skip_count = skip_count + 1
+                    # if min_syscount increase to much, just plus 1
+                    elif min_syscount > (skip_count + (vanill_invocation * 0.2)):
+                        log.error(f"sys count increase too much{min_syscount}, maybe enter infinite loop, change to +1")
+                        skip_count = skip_count + 1
                     else:
                         skip_count = min_syscount
 
