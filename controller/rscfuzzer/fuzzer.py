@@ -624,7 +624,7 @@ class Fuzzer:
         if self.gdb_p:
             self.gdb_p.kill()
 
-    def handle_core_dump_script(self, retcode=None, targets=None):
+    def handle_core_dump_script(self, retcode=None, targets=None, skip_count=-1):
         core_list = []
         # get all core dumps in the core_dir
         for f in os.listdir(self.core_dir):
@@ -688,7 +688,7 @@ class Fuzzer:
                 dst = os.path.join(self.store_core_dir, f"core.{hash_str}")
                 shutil.copy(file, dst)
                 log.info(f"core file stored to {dst}")
-                log.error(f"New Core Found: stored to {dst}, retcode=[{retcode}], targets=[{targets}]")
+                log.error(f"New Core Found: stored to {dst}, retcode=[{retcode}], targets=[{targets}], skip_count=[{skip_count}]")
                 # copy the record file as well
                 dst = os.path.join(self.store_core_dir, f"record.{hash_str}.txt")
                 shutil.copy(self.record_file, dst)
@@ -1907,7 +1907,7 @@ class Fuzzer:
                             os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                             fuzz_ret_code = FuzzResult.FUZZ_CLIENTFAIL
                             try:
-                                self.srv_p.wait(8)  # wait until strace properly save the output
+                                self.srv_p.wait(15)  # wait until strace properly save the output
                             except:
                                 log.debug("server terminate timeout, force kill")
                                 self.kill_servers()
@@ -1921,7 +1921,7 @@ class Fuzzer:
                                     os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                                     fuzz_ret_code = FuzzResult.FUZZ_EXECTIMEOUT
                                     try:
-                                        self.srv_p.wait(8)  # wait until cov properly save the output
+                                        self.srv_p.wait(15)  # wait until cov properly save the output
                                     except:
                                         log.error("server terminate time out, force kill")
                                         self.kill_servers()
@@ -1933,13 +1933,13 @@ class Fuzzer:
                             else:
                                 os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
                                 try:
-                                    self.srv_p.wait(8)  # wait until cov properly save the output
+                                    self.srv_p.wait(15)  # wait until cov properly save the output
                                 except:
                                     log.error("server terminate time out, force kill")
                                     self.kill_servers()
 
         # handle core dumped
-        core_ret = self.handle_core_dump_script(retcode, value_targets)
+        core_ret = self.handle_core_dump_script(retcode, value_targets, skip_count)
         if core_ret is None:
             print("are you kiddingme ? how could this be NOne?")
         if retcode == -11 and core_ret == 0:
