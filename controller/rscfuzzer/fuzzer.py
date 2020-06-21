@@ -610,7 +610,7 @@ class Fuzzer:
 
             # wait for fewer seconds to terminate
             try:
-                self.srv_p.wait(20)  # wait until cov properly save the output
+                self.srv_p.wait(10)  # wait until cov properly save the output
             except:
                 log.error("server terminate time out, force kill")
 
@@ -1915,11 +1915,11 @@ class Fuzzer:
                         log.debug(f"client ret code {client_ret}")
                         if client_ret != 0:
                             log.debug(f"client failed, kill server, wait ... ")
-                            if self.order_method != OrderMethod.ORDER_RECUR:
-                                try:
-                                    self.srv_p.wait(5)  # wait until strace properly save the output
-                                except:
-                                    pass
+                            # if self.order_method != OrderMethod.ORDER_RECUR:
+                            #     try:
+                            #         self.srv_p.wait(5)  # wait until strace properly save the output
+                            #     except:
+                            #         pass
                             fuzz_ret_code = FuzzResult.FUZZ_CLIENTFAIL
                             self.kill_servers()
                             log.debug(f"server terminated ... ")
