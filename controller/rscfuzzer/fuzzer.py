@@ -515,6 +515,10 @@ class Fuzzer:
         # if not has target, always update overall set, for vanilla set
         target_found = not has_target
 
+        if not os.path.isfile(self.hash_file):
+            log.error(f"{self.hash_file} does not exist after server")
+            return None
+        
         with open(self.hash_file) as fp:
             lines = fp.readlines()
             for line in lines:
