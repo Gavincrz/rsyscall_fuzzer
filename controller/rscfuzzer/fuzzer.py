@@ -656,9 +656,10 @@ class Fuzzer:
                 shutil.copy(file, dst)
                 dst = os.path.join(self.store_core_dir, f"strace.empty.txt")
                 shutil.copy(self.strace_log, dst)
-                continue
-            # check if exec matches
-            core_exec = m.group(1)
+                core_exec = self.executable
+            else:
+                # check if exec matches
+                core_exec = m.group(1)
             if core_exec != self.executable:
                 log.error(f'core file does not belong to target binary: {core_exec}, target = {targets}')
             # run gdb to get stack string using python script
@@ -688,6 +689,10 @@ class Fuzzer:
                 data = output_f.read()
             if len(data) <= 0:
                 log.error('gdb temp file read failed')
+                continue
+            # data should not contain error message:
+            if "gdb script error:" in data:
+                log.error(data)
                 continue
             hash = mmh3.hash64(data, signed=False)[0]
             if hash not in self.stack_set:
