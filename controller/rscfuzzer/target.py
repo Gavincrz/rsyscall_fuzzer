@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 # client functions
 def test_memcached_target():
-    arg_test = shlex.split('/shared/memcached_client.py')
+    arg_test = shlex.split('/rsyscall_fuzzer/controller/memcached_client.py')
     try:
         ret = subprocess.run(arg_test, timeout=8)
     except Exception as e:
@@ -28,7 +28,7 @@ def test_memcached_target():
         return ret.returncode
 
 def test_openssh_target():
-    arg_test = shlex.split('/shared/openssh_client.py')
+    arg_test = shlex.split('/rsyscall_fuzzer/controller/openssh_client.py')
     try:
         ret = subprocess.run(arg_test, timeout=8)
     except Exception as e:
