@@ -16,6 +16,27 @@ log = logging.getLogger(__name__)
 
 
 # client functions
+def test_memcached_target():
+    arg_test = shlex.split('/shared/memcached_client.py')
+    try:
+        ret = subprocess.run(arg_test, timeout=8)
+    except Exception as e:
+        return -1
+    if ret is None: 
+        return -1
+    else:
+        return ret.returncode
+
+def test_openssh_target():
+    arg_test = shlex.split('/shared/openssh_client.py')
+    try:
+        ret = subprocess.run(arg_test, timeout=8)
+    except Exception as e:
+        return -1
+    if ret is None: 
+        return -1
+    else:
+        return ret.returncode
 
 def connect_memcached_client(a1=None, a2=None):
     try:
@@ -35,21 +56,8 @@ def connect_memcached_client(a1=None, a2=None):
 def openssh_simple_client():
     try:
         ssh = paramiko.SSHClient()
-        ssh.load_host_keys("/home/gavin/.ssh/known_hosts")
-        ssh.connect("127.0.0.1", port=8080, username="gavin", timeout=1, banner_timeout=1, auth_timeout=1)
-        ssh.exec_command("exit", timeout=1)
-        ssh.close()
-    except Exception as err:
-        # log.error(f"{err}")
-        return -1
-    else:
-        return 0
-
-def openssh_docker_simple_client():
-    try:
-        ssh = paramiko.SSHClient()
-        ssh.load_host_keys("/home/gavin/.ssh/known_hosts")
-        ssh.connect("127.0.0.1", port=8080, username="gavin", timeout=5, banner_timeout=5, auth_timeout=5)
+        ssh.load_host_keys("/root/.ssh/known_hosts")
+        ssh.connect("localhost", port=8080, username="root", timeout=1, banner_timeout=1, auth_timeout=1)
         ssh.exec_command("exit", timeout=5)
         ssh.close()
     except Exception as err:
@@ -94,6 +102,15 @@ def clean_up_git():
     except Exception as e:
         print(e)
 
+
+def clean_up_git_docker():
+    try:
+        shutil.rmtree('/test_repo')
+    except FileNotFoundError:
+        # print("Git Directory dose not exist")
+        pass
+    except Exception as e:
+        print(e)
 
 def git_init_setup():
     clean_up_git()
@@ -454,7 +471,6 @@ targets = {
          "cov_cwd": "/home/gavin/memcached-cov/",
          "fuzz_valid": True,
          "sc_cov": True,
-         "accept_hash": 3234396722,
          "syscall_json": "/home/gavin/memcached_syscall.json",
          "hash_file": "syscov_memcached.txt",
          },
@@ -602,8 +618,7 @@ targets = {
          "sc_cov": True,
          "hash_file": "syscov_memcached.txt",
          "cov": False,
-         "accept_hash": 3234396722,
-         "syscall_json": "/home/gavin/memcached_syscall.json",
+         "accept_hash": 3234396722
          },
 
     "onefile_test":
@@ -627,14 +642,14 @@ targets = {
          },
     "docker_test":
         {
-         "command": "/onefile",
+        "command": "/onefile",
          "server": False,
          "poll": None,
          "clients": [],
-         "sudo": True,
+         "sudo": False,
          "retcode": None,
          "env": None,
-         "strace_log": "onefile_strace.txt",
+         "strace_log": "/shared/onefile_strace.txt",
          "cwd": None,
          "input": None,
          "timeout": 3,
@@ -643,26 +658,97 @@ targets = {
          "a_cov": True,
          "sc_cov": True,
          "syscall_json": "syscall_g.json",
-         "hash_file": "onefile.txt",
+         "hash_file": "/shared/onefile.txt",
         },
     "git_docker":
-        {"command": "/git-2.18.0/git clone root@localhost:gittest_remote.git /repo_test",
+        {"command": "/git-2.18.0/git clone root@localhost:/test_repo.git /test_repo",
          "server": False,
          "poll": None,
          "clients": [],
-         "sudo": True,
+         "sudo": False,
          "retcode": None,
          "env": None,
-         "strace_log": "git_sccov_strace.txt",
+         "strace_log": "/shared/git_strace.txt",
          "cwd": None,
          "input": None,
          "timeout": 15,
-         "setup_func": clean_up_git,
+         "setup_func": clean_up_git_docker,
          "poll_time": 3,
          "fuzz_valid": True,
          "a_cov": True,
          "sc_cov": True,
-         "syscall_json": "/home/gavin/git_syscall.json",
-         "hash_file": "syscov_git.txt",
+         "syscall_json": "/shared/git_syscall.json",
+         "hash_file": "/shared/git_hash.txt",
+         },
+    "memcahced_docker_test":
+        {"command": "/memcached-1.5.20/memcached -p 11111 -U 11111 -u root",
+         "server": True,
+         "poll": "epoll_wait",
+         "clients": [test_memcached_target],
+         "sudo": False,
+         "retcode": None,
+         "env": None,
+         "strace_log": "/shared/memcached_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 8,
+         "setup_func": None,
+         "poll_time": 5,
+         "cov": False,
+         "a_cov": True,
+         "fuzz_valid": True,
+         "sc_cov": True,
+         "syscall_json": "/shared/memcached_syscall.json",
+         "hash_file": "/shared/syscov_memcached.txt",
+         "accept_hash": 3758794766,
+         "value_method": "VALUE_ALL"
+         },
+
+    "lighttpd_docker":
+        {"command": "/lighttpd-1.4.51/src/lighttpd "
+                    "-D -f /lighttpd.conf",
+         "server": True,
+         "poll": "epoll_wait",
+         "clients": [simple_web_client],
+         "sudo": False,
+         "retcode": None,
+         "env": None,
+         "strace_log": "/shared/lighttpd_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 5,
+         "setup_func": None,
+         "poll_time": 1,
+         "cov": False,
+         "sc_cov": True,
+         "a_cov": True,
+         "syscall_json": "/shared/lighttpd_syscall.json",
+         "hash_file": "/shared/syscov_lighttpd.txt",
+         "fuzz_valid": True,
+         "value_method": "VALUE_ALL"
+         },
+    "openssh_docker":
+        {"command": "/openssh/sshd -f /sshd_config -D -d",
+         "server": True,
+         "poll": "select",
+         "clients": [test_openssh_target],
+         "sudo": False,
+         "retcode": 0,
+         "strace_log": "/shared/openssh_strace_log.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 1,
+         "setup_func": None,
+         "poll_time": 2,
+         "cov": False,
+         "sc_cov": True,
+         "a_cov": True,
+         "syscall_json": "/shared/openssh_syscall.json",
+         "hash_file": "/shared/syscov_openssh.txt",
+         "fuzz_valid": True,
+         "value_method": "VALUE_RANDOM",
+         "field_method": "FIELD_ITER",
+         "order_method": "ORDER_ALL",
+         "skip_method": "SKIP_ONE"
          },
 }
