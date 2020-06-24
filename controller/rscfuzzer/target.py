@@ -698,10 +698,13 @@ targets = {
          "a_cov": True,
          "fuzz_valid": True,
          "sc_cov": True,
-         "syscall_json": "/shared/memcached_syscall.json",
+         "syscall_json": "/rsyscall_fuzzer/memcached_syscall.json",
          "hash_file": "/shared/syscov_memcached.txt",
          "accept_hash": 3758794766,
-         "value_method": "VALUE_ALL"
+         "value_method": "VALUE_RANDOM",
+         "field_method": "FIELD_ITER",
+         "order_method": "ORDER_ALL",
+         "skip_method": "SKIP_ONE"
          },
 
     "lighttpd_docker":
@@ -722,10 +725,13 @@ targets = {
          "cov": False,
          "sc_cov": True,
          "a_cov": True,
-         "syscall_json": "/shared/lighttpd_syscall.json",
+         "syscall_json": "/rsyscall_fuzzer/lighttpd_syscall.json",
          "hash_file": "/shared/syscov_lighttpd.txt",
          "fuzz_valid": True,
-         "value_method": "VALUE_ALL"
+         "value_method": "VALUE_RANDOM",
+         "field_method": "FIELD_ITER",
+         "order_method": "ORDER_ALL",
+         "skip_method": "SKIP_ONE"
          },
     "openssh_docker":
         {"command": "/openssh/sshd -f /sshd_config -D -d",
@@ -743,7 +749,7 @@ targets = {
          "cov": False,
          "sc_cov": True,
          "a_cov": True,
-         "syscall_json": "/shared/openssh_syscall.json",
+         "syscall_json": "/rsyscall_fuzzer/openssh_syscall.json",
          "hash_file": "/shared/syscov_openssh.txt",
          "fuzz_valid": True,
          "value_method": "VALUE_RANDOM",
