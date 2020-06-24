@@ -361,6 +361,7 @@ class Fuzzer:
         if not os.path.exists(self.errorlog_dir):
             os.makedirs(self.errorlog_dir, mode=0o666)
             os.chmod(self.errorlog_dir, mode=0o666)
+        self.errorcount = 0
         # a set to record fuzzed syscalls
         self.fuzzed_set = set()
 
@@ -983,7 +984,7 @@ class Fuzzer:
 
     def generate_random_file_name(self):
         rand_str = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-        file_name = f'RAND_{rand_str}'
+        file_name = os.path.join(self.random_dir, f'RAND_{rand_str}')
         return file_name
 
     def extract_value_from_index(self, index_target):
@@ -2023,7 +2024,7 @@ class Fuzzer:
         # handle core dumped
         core_ret = self.handle_core_dump_script(retcode, value_targets, skip_count)
         if core_ret is None:
-            print("are you kiddingme ? how could this be NOne?")
+            log.error("are you kiddingme ? how could this be NOne?")
         if retcode == -11 and core_ret == 0:
             log.error(f'Retcode is -11 but no core found, target = {value_targets}')
         elif core_ret > 0:
@@ -2031,4 +2032,10 @@ class Fuzzer:
             fuzz_ret_code = FuzzResult.FUZZ_COREDUMP
         # parse record file and check if new syscall get fuzzed
         self.parse_record_file()
+
+        if retcode == 1:
+            stored_error = os.path.join(self.errorlog_dir, f"err_{self.errorcount}.txt")
+            shutil.copy(self.strace_log, stored_error)
+            log.error(f"strace retcode is 1, store file to {stored_error}")
+            self.errorcount += 1
         return fuzz_ret_code, retcode
