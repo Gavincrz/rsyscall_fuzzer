@@ -1030,16 +1030,15 @@ class Fuzzer:
     def remove_random_file(self, value):
         # only one field, one value
         if self.field_method == FieldMethod.FIELD_ITER:
-            if "RAND" not in value:
+            if not isinstance(value, str) or "RAND" not in value:
                 return
             self.remove_file(value)
         # all field, multiple file
         elif self.field_method == FieldMethod.FIELD_ALL:
             for item in value:
-                if "RAND" not in item:
+                if not isinstance(item, str) or "RAND" not in item:
                     continue
                 self.remove_file(item)
-
 
     '''try next value/field, return 0 if success, -1 if no more value/field to explore'''
     def update_target(self, index_target, value_target):
