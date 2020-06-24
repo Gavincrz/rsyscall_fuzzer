@@ -971,8 +971,10 @@ class Fuzzer:
     def remove_file(self, file):
         try:
             os.remove(file)
-        except:
-            pass
+        except Exception as e:
+            log.error(f"remove file failed {e}")
+        else:
+            log.debug(f"file removed: {file}")
 
     def get_value_list(self, field_key, syscall_dict):
         value_list = None
