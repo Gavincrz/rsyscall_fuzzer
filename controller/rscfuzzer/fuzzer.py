@@ -355,6 +355,8 @@ class Fuzzer:
             os.makedirs(self.random_dir, mode=0o666)
             os.chmod(self.random_dir, mode=0o666)
 
+        self.clear_random_files()
+
         # make a dir for storing error strace files
         self.errorlog_dir = self.config.get("error_dir", "/errorlog")
         # mkdir random dir necessary
@@ -386,6 +388,13 @@ class Fuzzer:
         for f in os.listdir(self.core_dir):
             try:
                 os.remove(os.path.join(self.core_dir, f))
+            except:
+                pass
+
+    def clear_random_files(self):
+        for f in os.listdir(self.random_dir):
+            try:
+                os.remove(os.path.join(self.random_dir, f))
             except:
                 pass
 
