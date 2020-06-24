@@ -18,6 +18,7 @@ import resource
 import mmh3
 import magic
 import re
+import string
 from enum import Enum
 from rscfuzzer.target import targets
 
@@ -347,6 +348,22 @@ class Fuzzer:
             self.skip_method = SkipMethod[skip_method_name]
         log.warning(f'skip method set to {self.skip_method}')
 
+        # make a dir for storing random files
+        self.random_dir = self.config.get("random_dir", "/random")
+        # mkdir random dir necessary
+        if not os.path.exists(self.random_dir):
+            os.makedirs(self.random_dir, mode=0o666)
+            os.chmod(self.random_dir, mode=0o666)
+
+        # make a dir for storing error strace files
+        self.errorlog_dir = self.config.get("error_dir", "/errorlog")
+        # mkdir random dir necessary
+        if not os.path.exists(self.errorlog_dir):
+            os.makedirs(self.errorlog_dir, mode=0o666)
+            os.chmod(self.errorlog_dir, mode=0o666)
+        # a set to record fuzzed syscalls
+        self.fuzzed_set = set()
+
     def clear_time_measurement(self):
         self.accept_time = 0
         self.client_time = 0
@@ -402,18 +419,15 @@ class Fuzzer:
 
         self.run_hundred_measurement(True, None, "no client strace")
 
-
         self.sc_cov = True
         self.not_write = True
         self.cache_unwind = False
         self.run_hundred_measurement(True, None, "no client trace stack (ori_unwind)")
 
-
         self.sc_cov = True
         self.not_write = True
         self.cache_unwind = True
         self.run_hundred_measurement(True, None, "no client record stack (cache unwind)")
-
 
         self.print_trace = False
         if self.server:
@@ -427,13 +441,11 @@ class Fuzzer:
             self.cache_unwind = False
             self.run_hundred_measurement(False, self.target.get("clients")[0], "client trace stack(ori_unwind)")
 
-
             self.sc_cov = True
             self.not_write = True
             self.print_trace = False
             self.cache_unwind = True
             self.run_hundred_measurement(False, self.target.get("clients")[0], "client record stack(cache_unwind)")
-
 
     def parse_syscall_order(self, before=True):
         syscall_order = []
@@ -634,7 +646,6 @@ class Fuzzer:
         if self.srv_p is not None:
             self.srv_p.kill()
 
-
     def kill_gdb(self):
         if self.gdb_p:
             self.gdb_p.kill()
@@ -719,7 +730,6 @@ class Fuzzer:
                 log.info(f"strace file stored to {dst}")
                 log.info("finish handle core dump")
         return len(core_list)
-
 
     def handle_core_dump(self, retcode=None, targets=None, skip_count=-1):
         core_list = []
@@ -868,7 +878,6 @@ class Fuzzer:
         self.print_diff(differ_02, total_dict)
         self.print_diff(differ_20, total_dict)
 
-
     def compare_syscall_orders(self, orders, tag):
         num_order = len(orders)
         min_len = len(orders[0])
@@ -940,7 +949,7 @@ class Fuzzer:
     def extend_value_list(self, value_list):
         # deep copy
         new_value_list = copy.deepcopy(value_list)
-        new_value_list.extend(['MIN', 'MAX', random.randint(const.INT_MIN, const.INT_MAX)])
+        new_value_list.extend(['MIN', 'MAX', 'RANDOM'])
         return new_value_list
 
     def get_random_int(self):
@@ -948,6 +957,12 @@ class Fuzzer:
                       random.randint(const.SHRT_MIN, const.SHRT_MAX),
                       random.randint(-sys.maxsize/2, sys.maxsize/2)]
         return random.choice(random_list)
+
+    def remove_file(self, file):
+        try:
+            os.remove(file)
+        except:
+            pass
 
     def get_value_list(self, field_key, syscall_dict):
         value_list = None
@@ -961,12 +976,15 @@ class Fuzzer:
                 value_list = []
             value_list = self.extend_value_list(value_list)
         elif self.value_method == ValueMethod.VALUE_RANDOM:
-            value_list = [random.randint(const.INT_MIN, const.INT_MAX),
-                          random.randint(const.SHRT_MIN, const.SHRT_MAX),
-                          random.randint(-sys.maxsize/2, sys.maxsize/2)]
+            value_list = ['RANDOM'] * const.RANDOM_REPEAT
         elif self.value_method == ValueMethod.VALUE_INVALID:
-            value_list = ['MIN', 'MAX', random.randint(const.INT_MIN, const.INT_MAX)]
+            value_list = ['MIN', 'MAX', 'RANDOM']
         return value_list
+
+    def generate_random_file_name(self):
+        rand_str = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+        file_name = f'RAND_{rand_str}'
+        return file_name
 
     def extract_value_from_index(self, index_target):
         syscall_name = index_target[0]
@@ -979,7 +997,7 @@ class Fuzzer:
         if self.field_method == FieldMethod.FIELD_ALL:
             output_value_list = []
             for i in range(0, len(syscall_field_list)):
-                output_value_list.append(self.get_random_int())
+                output_value_list.append(self.generate_random_file_name())
             return output_value_list
         # append _v to the field name
         field_key = f'{syscall_field_list[field_index]}_v'
@@ -994,7 +1012,24 @@ class Fuzzer:
         if value_index >= len(value_list):
             log.error(f'value_index out of bound: {value_index}/{len(value_list)}')
             self.clear_exit()
+        # check if value is RANDOM
+        if value_list[value_index] == "RANDOM":
+            return self.generate_random_file_name()
         return value_list[value_index]
+
+    def remove_random_file(self, value):
+        # only one field, one value
+        if self.field_method == FieldMethod.FIELD_ITER:
+            if "RAND" not in value:
+                return
+            self.remove_file(value)
+        # all field, multiple file
+        elif self.field_method == FieldMethod.FIELD_ALL:
+            for item in value:
+                if "RAND" not in item:
+                    continue
+                self.remove_file(item)
+
 
     '''try next value/field, return 0 if success, -1 if no more value/field to explore'''
     def update_target(self, index_target, value_target):
@@ -1025,6 +1060,8 @@ class Fuzzer:
 
         value_list = self.get_value_list(field_key, syscall_dict)
 
+        # before increment, we need to remove the unused random file
+        self.remove_random_file(value_target[3])
         # update value_index if possible
         if value_index + 1 < len(value_list):
             value_index += 1
@@ -1043,7 +1080,7 @@ class Fuzzer:
         # update value target
         if self.field_method == FieldMethod.FIELD_ITER:
             value_target[2] = field_index
-            value_target[3] = value_list[value_index]
+            value_target[3] = self.extract_value_from_index(index_target)
         elif self.field_method == FieldMethod.FIELD_RANDOM:
             value_target[2] = random.randrange(max_field_index)
             value_target[3] = value_list[value_index]
@@ -1772,6 +1809,22 @@ class Fuzzer:
             value_string = sep.join(value_list_string)
         return f'{value_target[0]} {value_target[1]} {value_target[2]} {value_string}\n'
 
+    def parse_record_file(self):
+        newly_fuzzed = []
+        with open(self.record_file) as fp:
+            lines = fp.readlines()
+            for line in lines:
+                if "syscall: " in line and "hash: " in line:
+                    parts = line.split(", hash: ")
+                    syscall = parts[0].split(": ")[-1]
+                    hash_str = parts[1].strip()
+                    str_key = f'{syscall}@{hash_str}'
+                    if str_key not in self.fuzzed_set:
+                        self.fuzzed_set.add(str_key)
+                        newly_fuzzed.append(str_key)
+        if len(newly_fuzzed) > 0:
+            log.info(f"newly fuzzed {len(newly_fuzzed)} syscalls. total={len(self.fuzzed_set)}, {newly_fuzzed}")
+
     def run_fuzzer_with_targets(self, value_targets, before_poll, client, target_syscall=None, skip_count=-1):
         if value_targets is None and self.order_method == OrderMethod.ORDER_RECUR:
             log.error('value_target should not be none for recursive fuzz')
@@ -1976,4 +2029,6 @@ class Fuzzer:
         elif core_ret > 0:
             self.kill_servers()
             fuzz_ret_code = FuzzResult.FUZZ_COREDUMP
+        # parse record file and check if new syscall get fuzzed
+        self.parse_record_file()
         return fuzz_ret_code, retcode
