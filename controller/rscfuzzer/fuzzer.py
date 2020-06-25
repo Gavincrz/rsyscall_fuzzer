@@ -30,7 +30,7 @@ coverage_file = "coverage.txt"
 
 ld_cmd = "LD_LIBRARY_PATH=/home/gavin/libunwind/build/usr/local/lib"
 
-
+invalid_list = ['MIN', 'MAX', 12580511, 'RANDOM']
 class ValueMethod(Enum):
     VALUE_ALL = 0
     VALUE_RANDOM = 1
@@ -959,7 +959,7 @@ class Fuzzer:
     def extend_value_list(self, value_list):
         # deep copy
         new_value_list = copy.deepcopy(value_list)
-        new_value_list.extend(['MIN', 'MAX', 'RANDOM'])
+        new_value_list.extend(invalid_list)
         return new_value_list
 
     def get_random_int(self):
@@ -990,7 +990,7 @@ class Fuzzer:
         elif self.value_method == ValueMethod.VALUE_RANDOM:
             value_list = ['RANDOM'] * const.RANDOM_REPEAT
         elif self.value_method == ValueMethod.VALUE_INVALID:
-            value_list = ['MIN', 'MAX', 'RANDOM']
+            value_list = invalid_list
         return value_list
 
     def generate_random_file_name(self):
