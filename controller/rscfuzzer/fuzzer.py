@@ -2043,7 +2043,7 @@ class Fuzzer:
         # parse record file and check if new syscall get fuzzed
         self.parse_record_file()
 
-        if retcode == 1:
+        if retcode == 511:
             stored_error = os.path.join(self.errorlog_dir, f"err_{self.errorcount}.txt")
             shutil.copy(self.strace_log, stored_error)
             log.error(f"strace retcode is 1, store file to {stored_error}")
