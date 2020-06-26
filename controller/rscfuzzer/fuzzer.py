@@ -30,7 +30,7 @@ coverage_file = "coverage.txt"
 
 ld_cmd = "LD_LIBRARY_PATH=/home/gavin/libunwind/build/usr/local/lib"
 
-invalid_list = ['MIN', 'MAX', 12580511, 'RANDOM']
+invalid_list = ['MIN', 'MAX', 12580511, 'RANDOM', 'RANDOM', 'RANDOM']
 class ValueMethod(Enum):
     VALUE_ALL = 0
     VALUE_RANDOM = 1
