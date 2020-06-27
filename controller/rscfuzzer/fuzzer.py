@@ -1150,6 +1150,8 @@ class Fuzzer:
                     # construct a target, syscall, hash_str, field index, field value
                     next_index_target = [syscall, hash_str, 0, 0]
                     next_value_target = [syscall, hash_str, 0, self.extract_value_from_index(next_index_target)]
+                    if self.field_method == FieldMethod.FIELD_ALL:
+                        next_value_target[2] = -1
 
                     # create a deepcopy of target list
                     next_index_targets = copy.deepcopy(index_targets)
@@ -1187,6 +1189,8 @@ class Fuzzer:
             # construct a target, syscall, hash_str, field index, field value
             first_index_target = [syscall, hash_str, 0, 0]
             first_value_target = [syscall, hash_str, 0, self.extract_value_from_index(first_index_target)]
+            if self.field_method == FieldMethod.FIELD_ALL:
+                first_value_target[2] = -1
 
             index_targets = [first_index_target]
             value_targets = [first_value_target]
