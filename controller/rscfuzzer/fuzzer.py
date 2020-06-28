@@ -47,6 +47,7 @@ class OrderMethod(Enum):
     ORDER_RECUR = 0
     ORDER_SEP = 1
     ORDER_ALL = 2
+    ORDER_ONE = 3
 
 class SkipMethod(Enum):
     SKIP_FAIL = 0
@@ -1133,42 +1134,47 @@ class Fuzzer:
                     log.info('stack string is None?')
                 # skip this target if still not found
                 return
+            if self.order_method == OrderMethod.ORDER_RECUR:
+                if depth + 1 < self.max_depth:
+                    log.debug(f'{len(new_syscall_dict)} new invocations found!')
+                    # update overall set and explore next depth
+                    self.overall_set.update(new_syscall_dict.keys())
+                    if len(new_syscall_dict) > 0:
+                        log.info(f"number of overallset = {len(self.overall_set)}")
+                    for i in range(len(new_syscall_dict.keys())):
+                        str_key = list(new_syscall_dict.keys())[i]
+                        split_list = str_key.split('@')
+                        stack_str = new_syscall_dict[str_key]
+                        syscall = split_list[0]
+                        hash_str = split_list[1]
 
-            if depth + 1 < self.max_depth:
-                log.debug(f'{len(new_syscall_dict)} new invocations found!')
-                # update overall set and explore next depth
+                        # construct a target, syscall, hash_str, field index, field value
+                        next_index_target = [syscall, hash_str, 0, 0]
+                        next_value_target = [syscall, hash_str, 0, self.extract_value_from_index(next_index_target)]
+                        if self.field_method == FieldMethod.FIELD_ALL:
+                            next_value_target[2] = -1
+
+                        # create a deepcopy of target list
+                        next_index_targets = copy.deepcopy(index_targets)
+                        next_value_targets = copy.deepcopy(value_targets)
+
+                        next_index_targets.append(next_index_target)
+                        next_value_targets.append(next_value_target)
+
+                        log.info(f'recursive fuzz newly found syscall {str_key}:'
+                                 f' {i}/{len(new_syscall_dict)}, depth = {depth}, '
+                                 f'targets = {next_value_targets}')
+                        log.info(stack_str)
+
+                        # call the recursive function on the two new list
+                        self.fuzz_with_targets(next_index_targets, next_value_targets, depth+1, before_poll, client)
+                else:
+                    log.info('depth reach maximum')
+            elif self.order_method == OrderMethod.ORDER_ONE:
+                # do not go further, just update the overall set:
                 self.overall_set.update(new_syscall_dict.keys())
                 if len(new_syscall_dict) > 0:
                     log.info(f"number of overallset = {len(self.overall_set)}")
-                for i in range(len(new_syscall_dict.keys())):
-                    str_key = list(new_syscall_dict.keys())[i]
-                    split_list = str_key.split('@')
-                    stack_str = new_syscall_dict[str_key]
-                    syscall = split_list[0]
-                    hash_str = split_list[1]
-
-                    # construct a target, syscall, hash_str, field index, field value
-                    next_index_target = [syscall, hash_str, 0, 0]
-                    next_value_target = [syscall, hash_str, 0, self.extract_value_from_index(next_index_target)]
-                    if self.field_method == FieldMethod.FIELD_ALL:
-                        next_value_target[2] = -1
-
-                    # create a deepcopy of target list
-                    next_index_targets = copy.deepcopy(index_targets)
-                    next_value_targets = copy.deepcopy(value_targets)
-
-                    next_index_targets.append(next_index_target)
-                    next_value_targets.append(next_value_target)
-
-                    log.info(f'recursive fuzz newly found syscall {str_key}:'
-                             f' {i}/{len(new_syscall_dict)}, depth = {depth}, '
-                             f'targets = {next_value_targets}')
-                    log.info(stack_str)
-
-                    # call the recursive function on the two new list
-                    self.fuzz_with_targets(next_index_targets, next_value_targets, depth+1, before_poll, client)
-            else:
-                log.info('depth reach maximum')
             # try next value/field
             ret = self.update_target(current_index_target, current_value_target)
             if ret == -1:
@@ -1259,7 +1265,7 @@ class Fuzzer:
         self.store_syscall_coverage()
 
         # start fuzzing
-        if self.order_method == OrderMethod.ORDER_RECUR:
+        if self.order_method == OrderMethod.ORDER_RECUR or self.order_method == OrderMethod.ORDER_ONE:
             self.recursive_fuzz_main_loop(vanilla_list, False, client)
         elif self.order_method == OrderMethod.ORDER_SEP:
             self.sep_fuzz_main_loop(client)
