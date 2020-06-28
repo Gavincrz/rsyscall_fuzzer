@@ -1832,6 +1832,9 @@ class Fuzzer:
 
     def parse_record_file(self):
         newly_fuzzed = []
+        if not os.path.isfile(self.record_file):
+            log.error("record file not exist!")
+            return
         with open(self.record_file) as fp:
             lines = fp.readlines()
             for line in lines:
