@@ -1008,14 +1008,14 @@ class Fuzzer:
         field_index = index_target[2]
         value_index = index_target[3]
         syscall_field_list = const.syscall_field_index[syscall_name]
-        if field_index >= len(syscall_field_list):
-            log.error(f'field_index out of bound: {field_index}/{len(syscall_field_list)}')
-            self.clear_exit()
         if self.field_method == FieldMethod.FIELD_ALL:
             output_value_list = []
             for i in range(0, len(syscall_field_list)):
                 output_value_list.append(self.generate_random_file_name())
             return output_value_list
+        if field_index >= len(syscall_field_list):
+            log.error(f'field_index out of bound: {field_index}/{len(syscall_field_list)}')
+            self.clear_exit()
         # append _v to the field name
         field_key = f'{syscall_field_list[field_index]}_v'
         # check if value index out of bound
