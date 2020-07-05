@@ -704,7 +704,8 @@ targets = {
          "value_method": "VALUE_RANDOM",
          "field_method": "FIELD_ITER",
          "order_method": "ORDER_ALL",
-         "skip_method": "SKIP_ONE"
+         "skip_method": "SKIP_ONE",
+         "field_repeat": 3,
          },
 
     "lighttpd_docker":
@@ -731,7 +732,8 @@ targets = {
          "value_method": "VALUE_RANDOM",
          "field_method": "FIELD_ITER",
          "order_method": "ORDER_ALL",
-         "skip_method": "SKIP_ONE"
+         "skip_method": "SKIP_ONE",
+         "field_repeat": 3,
          },
     "openssh_docker":
         {"command": "/openssh/sshd -f /sshd_config -D -d",
@@ -755,6 +757,7 @@ targets = {
          "value_method": "VALUE_RANDOM",
          "field_method": "FIELD_ITER",
          "order_method": "ORDER_ALL",
-         "skip_method": "SKIP_ONE"
+         "skip_method": "SKIP_ONE",
+         "field_repeat": 3,
          },
 }

@@ -143,7 +143,7 @@ class Fuzzer:
         self.record_file = self.config.get("record_file", None)
         self.count_file = self.config.get("count_file", "count.txt")
 
-        self.iteration = self.config.get("num_iteration", 20)
+        self.iteration = self.config.get("num_iteration", 9)
         target_iteration = self.target.get("num_iteration", None)
         if target_iteration is not None:
             self.iteration = target_iteration
@@ -368,6 +368,10 @@ class Fuzzer:
         # a set to record fuzzed syscalls
         self.fuzzed_set = set()
 
+        # -1 stand for repeat time = number of field
+        # other wise use 3 instead
+        self.all_field_repeat = self.target.get('field_repeat', 3)
+        log.warning(f"field_repeat time set to {self.all_field_repeat}")
     def clear_time_measurement(self):
         self.accept_time = 0
         self.client_time = 0
@@ -1069,7 +1073,10 @@ class Fuzzer:
                 self.clear_exit()
         elif self.field_method == FieldMethod.FIELD_RANDOM:
             max_field_index = const.RANDOM_REPEAT
-
+        elif self.field_method == FieldMethod.FIELD_ALL:
+            max_field_index = self.all_field_repeat
+            if max_field_index == -1:
+                max_field_index = len(syscall_field_list)
         value_list = self.get_value_list(field_key, syscall_dict)
 
         # before increment, we need to remove the unused random file
