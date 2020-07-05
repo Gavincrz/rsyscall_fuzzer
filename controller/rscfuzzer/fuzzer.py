@@ -1341,6 +1341,9 @@ class Fuzzer:
                 # increase the skip count:
                 if self.skip_method == SkipMethod.SKIP_ONE:
                     skip_count = skip_count + 1
+                    if skip_count == vanill_invocation:
+                        should_increase = False
+                        log.error(f"skip count increase to the last one in vanilla list: {skip_count}, stop")
                 elif self.skip_method == SkipMethod.SKIP_FAIL:
                     if min_syscount <= skip_count:
                         log.error(f'how could max_syscount {min_syscount} smaller than skip_count{skip_count}')
