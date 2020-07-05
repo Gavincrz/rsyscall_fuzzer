@@ -144,7 +144,7 @@ class Fuzzer:
         self.count_file = self.config.get("count_file", "count.txt")
 
         self.iteration = self.config.get("num_iteration", 9)
-        target_iteration = self.target.get("num_iteration", None)
+        target_iteration = self.target.get("num_iteration", 9)
         if target_iteration is not None:
             self.iteration = target_iteration
         log.warning(f'number of iteration for each skip count set to {self.iteration}')
