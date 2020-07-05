@@ -1124,7 +1124,8 @@ class Fuzzer:
             # run the fuzzer, retry 3 times if target syscall not appear
             log.debug(value_targets)
             for retry in range(0, const.INVOCATION_NOT_FOUND_RETRY):
-                self.run_fuzzer_with_targets(value_targets, before_poll, client)
+                fuzz_ret_code, retcode = self.run_fuzzer_with_targets(value_targets, before_poll, client)
+                log.debug(f'Fuzz return code is: {fuzz_ret_code}')
                 # get the new list
                 new_syscall_dict = self.parse_supported_hash(current_index_target[0], current_index_target[1])
                 # parse_supported_hash will return None if target not found
@@ -2071,4 +2072,5 @@ class Fuzzer:
             shutil.copy(self.strace_log, stored_error)
             log.error(f"strace retcode is 1, store file to {stored_error}")
             self.errorcount += 1
+
         return fuzz_ret_code, retcode
