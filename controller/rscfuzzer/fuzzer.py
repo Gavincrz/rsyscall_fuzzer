@@ -1312,7 +1312,7 @@ class Fuzzer:
             for i in range(self.iteration):
                 # do the fuzzing
                 fuzz_ret_code, retcode = self.run_fuzzer_with_targets(None, False, client, target_syscall, skip_count)
-
+                log.debug(f'Fuzz return code is: {fuzz_ret_code}')
                 # parse newly found syscalls:
                 new_syscall_dict = self.parse_supported_hash()
 
