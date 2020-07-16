@@ -249,13 +249,16 @@ def parse_cmd():
 
     # create and run the fuzzer
     sc_fuzzer = Fuzzer(config, args.target, args.skip)
+    if args.recursive and args.bench:
+        sc_fuzzer.overhead_test = True
+        sc_fuzzer.run_recursive_fuzz()
+        exit()
     if args.order:
         sc_fuzzer.check_syscall_order()
         exit()
     if args.recursive:
         sc_fuzzer.run_recursive_fuzz()
         exit()
-
     if args.bench:
         sc_fuzzer.run_benchmark()
         exit()

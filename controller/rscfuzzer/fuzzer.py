@@ -374,6 +374,7 @@ class Fuzzer:
         log.warning(f"field_repeat time set to {self.all_field_repeat}")
 
         self.benchmark_cmd = None
+        self.overhead_test= False
 
     def clear_time_measurement(self):
         self.accept_time = 0
@@ -1937,6 +1938,9 @@ class Fuzzer:
 
         #  -G means start fuzzing
         strace_cmd = f"{strace_cmd} -G"
+
+        if self.overhead_test:
+            strace_cmd = f"{strace_cmd} -a"
 
         # -R means recursive fuzz, provide ref file
         if value_targets is not None:
