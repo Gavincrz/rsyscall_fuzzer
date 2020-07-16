@@ -625,6 +625,8 @@ class Fuzzer:
             p.wait()
 
     def clear_record(self):
+        if self.record_file is None:
+            return
         try:
             os.remove(self.record_file)
         except FileNotFoundError:
