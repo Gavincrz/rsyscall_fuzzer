@@ -67,16 +67,15 @@ def openssh_simple_client():
 
 
 def simple_redis_client():
+    arg_test = shlex.split('/rsyscall_fuzzer/controller/redis_client.py')
     try:
-        r = redis.Redis(host='localhost', port=6379, db=0, timeout=5)
-        if r.set('foo', 'bar') != True:
-            return -1
-        if r.get('foo') != "bar":
-            return -1
-    except Exception as err:
+        ret = subprocess.run(arg_test, timeout=5)
+    except Exception as e:
+        return -1
+    if ret is None:
         return -1
     else:
-        return 0
+        return ret.returncode
 
 def simple_web_client():
     try:
