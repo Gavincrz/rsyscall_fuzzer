@@ -65,8 +65,18 @@ def openssh_simple_client():
     else:
         return 0
 
+
 def simple_redis_client():
-    r = redis.Redis(host='localhost', port=6379, db=0)
+    try:
+        r = redis.Redis(host='localhost', port=6379, db=0, timeout=5)
+        if r.set('foo', 'bar') != True:
+            return -1
+        if r.get('foo') != "bar":
+            return -1
+    except Exception as err:
+        return -1
+    else:
+        return 0
 
 def simple_web_client():
     try:
@@ -777,13 +787,40 @@ targets = {
          "setup_func": None,
          "poll_time": 3,
          "a_cov": True,
-         "syscall_json": "/rsyscall_fuzzer/zlib.json",
+         "sc_cov": True,
+         "syscall_json": "/rsyscall_fuzzer/zlib_syscall.json",
          "hash_file": "/shared/syscov_zlib.txt",
          "fuzz_valid": True,
-         "value_method": "VALUE_RANDOM",
+         "value_method": "VALUE_ALL",
          "field_method": "FIELD_ITER",
-         "order_method": "ORDER_ALL",
+         "order_method": "ORDER_RECUR",
          "skip_method": "SKIP_ONE",
          "field_repeat": 3,
-        }
+        },
+    "redis_docker":
+        {"command": "/redis/src/redis-server --port 6379",
+         "server": True,
+         "poll": "epoll_wait",
+         "clients": [simple_redis_client],
+         "sudo": False,
+         "retcode": None,
+         "env": None,
+         "strace_log": "/shared/redis_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 5,
+         "setup_func": None,
+         "poll_time": 1,
+         "cov": False,
+         "sc_cov": True,
+         "a_cov": True,
+         "syscall_json": "/rsyscall_fuzzer/redis_syscall.json",
+         "hash_file": "/shared/syscov_redis.txt",
+         "fuzz_valid": True,
+         "value_method": "VALUE_ALL",
+         "field_method": "FIELD_ITER",
+         "order_method": "ORDER_RECUR",
+         "skip_method": "SKIP_ONE",
+         "field_repeat": 3,
+         },
 }
