@@ -1862,6 +1862,8 @@ class Fuzzer:
             strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
         self.benchmark_cmd = f"{strace_cmd} {self.command}"
         client = self.target.get("clients")[0]
+        stored_record_file = self.record_file
+        self.record_file = None
         # run the vanilla strace 100 times
         self.run_100_benchmark(client, "vanilla strace")
 
@@ -1876,6 +1878,7 @@ class Fuzzer:
 
 
         # check for add reference
+        self.record_file = stored_record_file
         strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
         if self.server:
             cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
@@ -2119,8 +2122,10 @@ class Fuzzer:
         elif core_ret > 0:
             self.kill_servers()
             fuzz_ret_code = FuzzResult.FUZZ_COREDUMP
+
         # parse record file and check if new syscall get fuzzed
-        self.parse_record_file()
+        if self.record_file is not None:
+            self.parse_record_file()
 
         if retcode == 244:
             stored_error = os.path.join(self.errorlog_dir, f"err_{self.errorcount}.txt")
