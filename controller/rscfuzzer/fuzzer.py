@@ -1845,6 +1845,15 @@ class Fuzzer:
             value_string = sep.join(value_list_string)
         return f'{value_target[0]} {value_target[1]} {value_target[2]} {value_string}\n'
 
+    def run_100_benchmark(self, client, name):
+        start = time.time()
+        for i in range(100):
+            fuzz_ret_code, retcode = self.run_fuzzer_with_targets(None, True, client)
+            print(f'{fuzz_ret_code}:{retcode}', end=' ')
+        end = time.time()
+        total = (end - start)
+        print(f"{name} run time = {total}: {total / 100}")
+
     def run_benchmark(self):
         # check for vanilla strace
         strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
@@ -1854,12 +1863,7 @@ class Fuzzer:
         self.benchmark_cmd = f"{strace_cmd} {self.command}"
         client = self.target.get("clients")[0]
         # run the vanilla strace 100 times
-        start = time.time()
-        for i in range(100):
-            self.run_fuzzer_with_targets(None, True, client)
-        end = time.time()
-        vanilla_time = (end - start)
-        print(f"vanilla strace run time = {vanilla_time}: {vanilla_time/100}")
+        self.run_100_benchmark(client, "vanilla strace")
 
         # check for stack trace
         strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
@@ -1868,12 +1872,8 @@ class Fuzzer:
             strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
         strace_cmd = f"{strace_cmd} -n {self.hash_file}"
         self.benchmark_cmd = f"{strace_cmd} {self.command}"
-        start = time.time()
-        for i in range(100):
-            self.run_fuzzer_with_targets(None, True, client)
-        end = time.time()
-        stack_trace_time = (end - start)
-        print(f"strace with stack trace run time = {stack_trace_time}: {stack_trace_time / 100}")
+        self.run_100_benchmark(client, "stack trace")
+
 
         # check for add reference
         strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
@@ -1892,12 +1892,7 @@ class Fuzzer:
             strace_cmd = f"{strace_cmd} -L {os.path.abspath(self.record_file)}"
 
         self.benchmark_cmd = f"{strace_cmd} {self.command}"
-        start = time.time()
-        for i in range(100):
-            self.run_fuzzer_with_targets(None, True, client)
-        end = time.time()
-        fuzz_time = (end - start)
-        print(f"strace with stack trace run time = {fuzz_time}: {fuzz_time / 100}")
+        self.run_100_benchmark(client, "fuzz")
 
 
     def parse_record_file(self):
