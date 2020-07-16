@@ -8,6 +8,7 @@ import os
 import shlex
 import subprocess
 import memcached_udp
+import redis
 # suppress warning and logs for paramiko
 warnings.filterwarnings(action='ignore',module='.*paramiko.*')
 logging.getLogger("paramiko").setLevel(logging.CRITICAL)
@@ -50,8 +51,6 @@ def connect_memcached_client(a1=None, a2=None):
     except Exception as e:
         # print(e)
         return -1
-    else:
-        return 0
 
 def openssh_simple_client():
     try:
@@ -66,6 +65,8 @@ def openssh_simple_client():
     else:
         return 0
 
+def simple_redis_client():
+    r = redis.Redis(host='localhost', port=6379, db=0)
 
 def simple_web_client():
     try:
@@ -760,4 +761,29 @@ targets = {
          "skip_method": "SKIP_ONE",
          "field_repeat": 3,
          },
+    "zlib_docker":
+        {
+         "command": "/zlib/example",
+         "server": False,
+         "poll": None,
+         "clients": [],
+         "sudo": False,
+         "retcode": None,
+         "env": None,
+         "strace_log": "/shared/zlib_cov_strace.txt",
+         "cwd": None,
+         "input": None,
+         "timeout": 3,
+         "setup_func": None,
+         "poll_time": 3,
+         "a_cov": True,
+         "syscall_json": "/rsyscall_fuzzer/zlib.json",
+         "hash_file": "/shared/syscov_zlib.txt",
+         "fuzz_valid": True,
+         "value_method": "VALUE_RANDOM",
+         "field_method": "FIELD_ITER",
+         "order_method": "ORDER_ALL",
+         "skip_method": "SKIP_ONE",
+         "field_repeat": 3,
+        }
 }
