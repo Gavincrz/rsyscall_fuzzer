@@ -635,13 +635,14 @@ class Fuzzer:
         """ kill all running server to avoid port unavaliable """
         if self.srv_p:
             try:
-                os.kill(self.srv_p.pid, signal.SIGTERM)
+                os.killpg(os.getpgid(self.srv_p.pid), signal.SIGTERM)
             except ProcessLookupError:
                 self.srv_p.kill()
 
             # wait for fewer seconds to terminate
             try:
-                self.srv_p.wait(10)  # wait until cov properly save the output
+                ret = self.srv_p.wait(5)  # wait until cov properly save the output
+                log.info(f"server terminate after sigint with return code {ret}")
             except:
                 log.error("server terminate time out, force kill")
 
@@ -654,7 +655,7 @@ class Fuzzer:
             # check whether the process name matches
             try:
                 if self.executable in proc.exe():
-                    print(f"found not killed process, kill it {self.executable}")
+                    log.error(f"found not killed process, kill it {self.executable}")
                     proc.kill()
             except:
                 continue

@@ -2,7 +2,7 @@
 import redis
 
 try:
-    r = redis.Redis(host='localhost', port=6379, db=0, timeout=5)
+    r = redis.Redis(host='localhost', port=6379, db=0, socket_timeout=3)
     if r.set('foo', 'bar') != True:
         exit(-1)
     if r.get('foo') != "bar":
