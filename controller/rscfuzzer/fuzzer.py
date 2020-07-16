@@ -372,6 +372,9 @@ class Fuzzer:
         # other wise use 3 instead
         self.all_field_repeat = self.target.get('field_repeat', 3)
         log.warning(f"field_repeat time set to {self.all_field_repeat}")
+
+        self.benchmark_cmd = None
+
     def clear_time_measurement(self):
         self.accept_time = 0
         self.client_time = 0
@@ -655,7 +658,7 @@ class Fuzzer:
             # check whether the process name matches
             try:
                 if self.executable in proc.exe():
-                    log.error(f"found not killed process, kill it {self.executable}")
+                    log.debug(f"found not killed process, kill it {self.executable}")
                     proc.kill()
             except:
                 continue
@@ -1842,6 +1845,61 @@ class Fuzzer:
             value_string = sep.join(value_list_string)
         return f'{value_target[0]} {value_target[1]} {value_target[2]} {value_string}\n'
 
+    def run_benchmark(self):
+        # check for vanilla strace
+        strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
+        if self.server:
+            cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
+            strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
+        self.benchmark_cmd = f"{strace_cmd} {self.command}"
+        client = self.target.get("clients")[0]
+        # run the vanilla strace 100 times
+        start = time.time()
+        for i in range(100):
+            self.run_fuzzer_with_targets(None, True, client)
+        end = time.time()
+        vanilla_time = (end - start)
+        print(f"vanilla strace run time = {vanilla_time}: {vanilla_time/100}")
+
+        # check for stack trace
+        strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
+        if self.server:
+            cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
+            strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
+        strace_cmd = f"{strace_cmd} -n {self.hash_file}"
+        self.benchmark_cmd = f"{strace_cmd} {self.command}"
+        start = time.time()
+        for i in range(100):
+            self.run_fuzzer_with_targets(None, True, client)
+        end = time.time()
+        stack_trace_time = (end - start)
+        print(f"strace with stack trace run time = {stack_trace_time}: {stack_trace_time / 100}")
+
+        # check for add reference
+        strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
+        if self.server:
+            cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
+            strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
+        strace_cmd = f"{strace_cmd} -n {self.hash_file}"
+
+        # add fuzzing
+        strace_cmd = f"{strace_cmd} -G -a"
+
+        # -R means recursive fuzz, provide ref file
+        strace_cmd = f"{strace_cmd} -R {self.reference_file}"
+        # add record file if set
+        if self.record_file is not None:
+            strace_cmd = f"{strace_cmd} -L {os.path.abspath(self.record_file)}"
+
+        self.benchmark_cmd = f"{strace_cmd} {self.command}"
+        start = time.time()
+        for i in range(100):
+            self.run_fuzzer_with_targets(None, True, client)
+        end = time.time()
+        fuzz_time = (end - start)
+        print(f"strace with stack trace run time = {fuzz_time}: {fuzz_time / 100}")
+
+
     def parse_record_file(self):
         newly_fuzzed = []
         if not os.path.isfile(self.record_file):
@@ -1862,7 +1920,7 @@ class Fuzzer:
             log.info(f"newly fuzzed {len(newly_fuzzed)} syscalls. total={len(self.fuzzed_set)}, {newly_fuzzed}")
 
     def run_fuzzer_with_targets(self, value_targets, before_poll, client, target_syscall=None, skip_count=-1):
-        if value_targets is None and self.order_method == OrderMethod.ORDER_RECUR:
+        if value_targets is None and self.order_method == OrderMethod.ORDER_RECUR and self.benchmark_cmd is None:
             log.error('value_target should not be none for recursive fuzz')
             self.clear_exit()
         if value_targets is not None:
@@ -1910,7 +1968,8 @@ class Fuzzer:
             strace_cmd = f"{strace_cmd} -B {skip_count} -N {os.path.abspath(self.count_file)}"
 
         strace_cmd = f"{strace_cmd} {self.command}"
-
+        if self.benchmark_cmd is not None:
+            strace_cmd = self.benchmark_cmd
         if self.cache_unwind:
             ld_path = ld_cmd
 

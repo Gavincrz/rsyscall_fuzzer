@@ -157,6 +157,12 @@ def parse_cmd():
         action="store_const", dest="order", const=True, default=False,
     )
 
+    parser.add_argument(
+        "-b",
+        help="benchmark",
+        action="store_const", dest="bench", const=True, default=False,
+    )
+
     parser.add_argument("-u", "--syscount", metavar="FILE",
                         help="Set compile file", default=None)
 
@@ -189,8 +195,6 @@ def parse_cmd():
     file_handler = logging.FileHandler(config['log_file'])
     file_handler.setLevel(args.loglevel)  # log everything to the file
     file_handler.setFormatter(formatter)
-
-
 
     if args.test and args.generate is not None:
         print(f'testing gdb with path {args.generate}')
@@ -250,6 +254,10 @@ def parse_cmd():
         exit()
     if args.recursive:
         sc_fuzzer.run_recursive_fuzz()
+        exit()
+
+    if args.bench:
+        sc_fuzzer.run_benchmark()
         exit()
 
     sc_fuzzer.run()
