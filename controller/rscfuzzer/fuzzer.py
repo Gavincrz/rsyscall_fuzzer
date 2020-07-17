@@ -211,7 +211,7 @@ class Fuzzer:
 
         self.vanila_cov = {}
         self.fuzz_cov = {}
-
+        self.start_time = time.time()
         if os.path.isfile(hash_file_v):
             try:
                 file = open(hash_file_v, 'rb')
@@ -276,7 +276,6 @@ class Fuzzer:
 
         # coverage contain all the invocations's hash key = syscall+hash
         self.coverage_dict = {}
-
         # load coverage file if exist
         if os.path.isfile(coverage_file):
             try:
@@ -375,6 +374,10 @@ class Fuzzer:
 
         self.benchmark_cmd = None
         self.overhead_test= False
+        self.iteration_count = 0
+        self.run_fuzz_function_time = 0
+        self.run_parse_function_time = 0
+        self.no_signal = False
 
     def clear_time_measurement(self):
         self.accept_time = 0
@@ -932,10 +935,23 @@ class Fuzzer:
                 log.info(f'differ syscalls in iteration {i}')
                 self.print_differ(orders[i], differ, f'differ/{self.target_name}_{tag}_{i}')
 
+    def print_measuerment(self):
+        end_time = time.time()
+        total_time = end_time - self.start_time
+        log.warning(f"total runtime is {total_time},\n "
+                    f"totalnumber of it = {self.iteration_count}, \n"
+                    f"average time is {total_time / self.iteration_count}, \n"
+                    f"fuzzer functiontime = {self.run_fuzz_function_time}\n"
+                    f"average fuzzer function time = {self.run_fuzz_function_time / self.iteration_count}")
+        self.start_time = time.time()
+        self.run_fuzz_function_time = 0
+        self.iteration_count = 0
+
     def clear_exit(self):
         self.kill_servers()
         self.kill_gdb()
         self.store_syscall_coverage()
+        self.print_measuerment()
         sys.exit(0)
 
     def check_syscall_order(self):
@@ -1196,6 +1212,7 @@ class Fuzzer:
                 break
 
     def recursive_fuzz_main_loop(self, vanilla_list, before_poll=True, client=None):
+        self.start_time = time.time()
         # generate initial target reference
         for i in range(len(vanilla_list.keys())):
             if i < self.start_skip:
@@ -1848,10 +1865,10 @@ class Fuzzer:
             value_string = sep.join(value_list_string)
         return f'{value_target[0]} {value_target[1]} {value_target[2]} {value_string}\n'
 
-    def run_100_benchmark(self, client, name, parse_hash=False):
+    def run_100_benchmark(self, client, name, parse_hash=False, target=None):
         start = time.time()
         for i in range(100):
-            fuzz_ret_code, retcode = self.run_fuzzer_with_targets(None, True, client)
+            fuzz_ret_code, retcode = self.run_fuzzer_with_targets(target, False, client)
             print(f'{fuzz_ret_code}:{retcode}', end=' ')
             if parse_hash:
                 self.parse_supported_hash()
@@ -1860,21 +1877,48 @@ class Fuzzer:
         print(f"\n{name} run time = {total}: {total / 100}")
 
     def run_benchmark(self):
+        clients = self.target.get("clients")
+        if len(clients) > 0:
+            client = clients[0]
+        else:
+            client = None
+
+        ret = self.run_interceptor_vanilla(False, client)
+        if ret == 0:
+            log.info(f"vanilla cov run success ! ")
+        # generate vanila syscall list
+        vanilla_list = self.parse_supported_hash(vanilla=True)
+
+        str_key = list(vanilla_list.keys())[0]
+        split_list = str_key.split('@')
+        syscall = split_list[0]
+        hash_str = split_list[1]
+
+        # construct a target, syscall, hash_str, field index, field value
+        first_index_target = [syscall, hash_str, 0, 0]
+        first_value_target = [syscall, hash_str, 0, self.extract_value_from_index(first_index_target)]
+        value_targets = [first_value_target]
+
+        self.no_signal = True
+        self.benchmark_cmd = f"{self.command}"
+
+        stored_record_file = self.record_file
+        self.record_file = None
+        # run the vanilla strace 100 times
+        self.run_100_benchmark(client, "vanilla application")
+        self.print_measuerment()
+
+        self.no_signal = False
         # check for vanilla strace
         strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
         if self.server:
             cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
             strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
         self.benchmark_cmd = f"{strace_cmd} {self.command}"
-        clients = self.target.get("clients")
-        if len(clients) > 0:
-            client = clients[0]
-        else:
-            client = None
-        stored_record_file = self.record_file
-        self.record_file = None
         # run the vanilla strace 100 times
         self.run_100_benchmark(client, "vanilla strace")
+        self.print_measuerment()
+
 
         # check for stack trace
         strace_cmd = f"{os.path.join(self.strace_dir, 'strace')} -ff"
@@ -1882,9 +1926,12 @@ class Fuzzer:
             cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
             strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
         strace_cmd = f"{strace_cmd} -n {self.hash_file}"
+        if self.accept_hash > 0:
+            strace_cmd = f"{strace_cmd} -Q {self.accept_hash}"
         self.benchmark_cmd = f"{strace_cmd} {self.command}"
         self.run_100_benchmark(client, "stack trace")
 
+        self.print_measuerment()
 
         # check for add reference
         self.record_file = stored_record_file
@@ -1893,7 +1940,8 @@ class Fuzzer:
             cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
             strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
         strace_cmd = f"{strace_cmd} -n {self.hash_file}"
-
+        if self.accept_hash > 0:
+            strace_cmd = f"{strace_cmd} -Q {self.accept_hash}"
         # add fuzzing
         strace_cmd = f"{strace_cmd} -G -a"
 
@@ -1904,9 +1952,13 @@ class Fuzzer:
             strace_cmd = f"{strace_cmd} -L {os.path.abspath(self.record_file)}"
 
         self.benchmark_cmd = f"{strace_cmd} {self.command}"
-        self.run_100_benchmark(client, "fuzz")
+        self.run_100_benchmark(client, "fuzz", target=value_targets)
 
-        self.run_100_benchmark(client, "parse hash", True)
+        self.print_measuerment()
+
+        self.run_100_benchmark(client, "parse hash", True, target=value_targets)
+
+        self.print_measuerment()
 
 
     def parse_record_file(self):
@@ -1929,6 +1981,7 @@ class Fuzzer:
             log.info(f"newly fuzzed {len(newly_fuzzed)} syscalls. total={len(self.fuzzed_set)}, {newly_fuzzed}")
 
     def run_fuzzer_with_targets(self, value_targets, before_poll, client, target_syscall=None, skip_count=-1):
+        fuzzer_start_time = time.time()
         if value_targets is None and self.order_method == OrderMethod.ORDER_RECUR and self.benchmark_cmd is None:
             log.error('value_target should not be none for recursive fuzz')
             self.clear_exit()
@@ -1980,6 +2033,7 @@ class Fuzzer:
             strace_cmd = f"{strace_cmd} -B {skip_count} -N {os.path.abspath(self.count_file)}"
 
         strace_cmd = f"{strace_cmd} {self.command}"
+
         if self.benchmark_cmd is not None:
             strace_cmd = self.benchmark_cmd
         if self.cache_unwind:
@@ -2017,6 +2071,7 @@ class Fuzzer:
                                           cwd=self.target_cwd,
                                           close_fds=True,
                                           env=self.target_env)
+            self.iteration_count += 1
         except:
             proc = psutil.Process()
             log.error(f'opened files: {proc.open_files()}, too many open file?')
@@ -2047,32 +2102,38 @@ class Fuzzer:
                 log.debug('server exit before signal')
                 fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
             else:
-                # use polling instead of timeout
-                wait_start = time.time()
-                wait_end = time.time()
-                log.debug("wait for server's signal ...")
-                while wait_end - wait_start < self.poll_time:
-                    ret = signal.sigtimedwait([const.ACCEPT_SIG], 0)  # poll the signal
-                    if ret is not None: # singal received
-                        break
-                    # check server state
-                    retcode = self.srv_p.poll()
-                    if retcode is not None:
-                        log.debug(f'server terminated before reach accept, retcode = {retcode}')
-                        fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
-                        break
-                    wait_end = time.time()
-                signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
-                if ret is None:  # timeout
-                    log.debug("signal timeout!")
-                    retcode = self.srv_p.poll()
-                    fuzz_ret_code = FuzzResult.FUZZ_SIGTIMEOUT
-                    if retcode is not None:
-                        fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
-                        log.debug(f'server terminated before reach accept, retcode = {retcode}')
-                    self.kill_servers()
+                signal_received = False
+                if self.no_signal:
+                    signal_received = True
                 else:
-                    log.debug("signal received!")
+                    # use polling instead of timeout
+                    wait_start = time.time()
+                    wait_end = time.time()
+                    log.debug("wait for server's signal ...")
+                    while wait_end - wait_start < self.poll_time:
+                        ret = signal.sigtimedwait([const.ACCEPT_SIG], 0)  # poll the signal
+                        if ret is not None: # singal received
+                            break
+                        # check server state
+                        retcode = self.srv_p.poll()
+                        if retcode is not None:
+                            log.debug(f'server terminated before reach accept, retcode = {retcode}')
+                            fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
+                            break
+                        wait_end = time.time()
+                    signal.pthread_sigmask(signal.SIG_UNBLOCK, [const.ACCEPT_SIG])
+                    if ret is None:  # timeout
+                        log.debug("signal timeout!")
+                        retcode = self.srv_p.poll()
+                        fuzz_ret_code = FuzzResult.FUZZ_SIGTIMEOUT
+                        if retcode is not None:
+                            fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
+                            log.debug(f'server terminated before reach accept, retcode = {retcode}')
+                        self.kill_servers()
+                    else:
+                        signal_received = True
+                        log.debug("signal received!")
+                if signal_received:
                     # check if this turn only test before poll:
                     if before_poll:
                         # check if the server crashes,
@@ -2146,5 +2207,6 @@ class Fuzzer:
             shutil.copy(self.strace_log, stored_error)
             log.error(f"strace retcode is 1, store file to {stored_error}")
             self.errorcount += 1
-
+        fuzzer_end_time = time.time()
+        self.run_fuzz_function_time += (fuzzer_end_time-fuzzer_start_time)
         return fuzz_ret_code, retcode

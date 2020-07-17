@@ -671,7 +671,7 @@ targets = {
          "hash_file": "/shared/onefile.txt",
         },
     "git_docker":
-        {"command": "/git-2.18.0/git clone root@localhost:/test_repo.git /test_repo",
+        {"command": "/usr/libexec/git-core/git clone root@localhost:/test_repo.git /test_repo",
          "server": False,
          "poll": None,
          "clients": [],
