@@ -1864,7 +1864,11 @@ class Fuzzer:
             cur_pid = os.getpid()  # pass pid to the strace, it will send SIGUSR1 back
             strace_cmd = f"{strace_cmd} -j {self.poll} -J {cur_pid}"
         self.benchmark_cmd = f"{strace_cmd} {self.command}"
-        client = self.target.get("clients")[0]
+        clients = self.target.get("clients")
+        if len(clients) > 0:
+            client = clients[0]
+        else:
+            client = None
         stored_record_file = self.record_file
         self.record_file = None
         # run the vanilla strace 100 times
