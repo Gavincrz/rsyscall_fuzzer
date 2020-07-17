@@ -1848,14 +1848,16 @@ class Fuzzer:
             value_string = sep.join(value_list_string)
         return f'{value_target[0]} {value_target[1]} {value_target[2]} {value_string}\n'
 
-    def run_100_benchmark(self, client, name):
+    def run_100_benchmark(self, client, name, parse_hash=False):
         start = time.time()
         for i in range(100):
             fuzz_ret_code, retcode = self.run_fuzzer_with_targets(None, True, client)
             print(f'{fuzz_ret_code}:{retcode}', end=' ')
+            if parse_hash:
+                self.parse_supported_hash()
         end = time.time()
         total = (end - start)
-        print(f"{name} run time = {total}: {total / 100}")
+        print(f"\n{name} run time = {total}: {total / 100}")
 
     def run_benchmark(self):
         # check for vanilla strace
@@ -1903,6 +1905,8 @@ class Fuzzer:
 
         self.benchmark_cmd = f"{strace_cmd} {self.command}"
         self.run_100_benchmark(client, "fuzz")
+
+        self.run_100_benchmark(client, "parse hash", True)
 
 
     def parse_record_file(self):
