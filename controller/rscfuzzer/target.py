@@ -687,8 +687,12 @@ targets = {
          "fuzz_valid": True,
          "a_cov": True,
          "sc_cov": True,
-         "syscall_json": "/shared/git_syscall.json",
+         "syscall_json": "/rsyscall_fuzzer/git_syscall.json",
          "hash_file": "/shared/git_hash.txt",
+         "value_method": "VALUE_ALL",
+         "field_method": "FIELD_ITER",
+         "order_method": "ORDER_RECUR",
+         "skip_method": "SKIP_ONE",
          },
     "memcahced_docker_test":
         {"command": "/memcached-1.5.20/memcached -p 11111 -U 11111 -u root",
