@@ -103,7 +103,7 @@ syscall_field_index = {
     "setsid": ["ret"],
     "sendto": ["ret"],
     "chroot": ["ret"],
-    "getdents": ["ret", "dirp"],
+    "getdents": ["ret", "d_off", "d_reclen", "d_type"],
     "getppid": ["ret"],
     "dup": ["ret"],
     "nanosleep": ["ret", "tv_sec", "tv_nsec"],
