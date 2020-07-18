@@ -1982,6 +1982,7 @@ class Fuzzer:
 
     def run_fuzzer_with_targets(self, value_targets, before_poll, client, target_syscall=None, skip_count=-1):
         fuzzer_start_time = time.time()
+        retry_flag = False
         if value_targets is None and self.order_method == OrderMethod.ORDER_RECUR and self.benchmark_cmd is None:
             log.error('value_target should not be none for recursive fuzz')
             self.clear_exit()
@@ -2071,7 +2072,6 @@ class Fuzzer:
                                           cwd=self.target_cwd,
                                           close_fds=True,
                                           env=self.target_env)
-            self.iteration_count += 1
         except:
             proc = psutil.Process()
             log.error(f'opened files: {proc.open_files()}, too many open file?')
@@ -2156,6 +2156,8 @@ class Fuzzer:
                             client_ret = client()
                             if client_ret == 0:
                                 break
+                            else:
+                                retry_flag = True
                         log.debug(f"client ret code {client_ret}")
                         if client_ret != 0:
                             log.debug(f"client failed, kill server, wait ... ")
@@ -2208,5 +2210,7 @@ class Fuzzer:
             log.error(f"strace retcode is 1, store file to {stored_error}")
             self.errorcount += 1
         fuzzer_end_time = time.time()
-        self.run_fuzz_function_time += (fuzzer_end_time-fuzzer_start_time)
+        if not retry_flag:
+            self.run_fuzz_function_time += (fuzzer_end_time-fuzzer_start_time)
+            self.iteration_count += 1
         return fuzz_ret_code, retcode

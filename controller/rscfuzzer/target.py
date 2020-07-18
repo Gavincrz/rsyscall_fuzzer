@@ -70,7 +70,7 @@ def simple_redis_client():
         r = redis.Redis(host='localhost', port=6379, db=0, socket_timeout=3)
         if r.set('foo', 'bar') != True:
             return -1
-        if r.get('foo') != "bar":
+        if r.get('foo') != b"bar":
             return -1
         r.close()
     except Exception as err:
