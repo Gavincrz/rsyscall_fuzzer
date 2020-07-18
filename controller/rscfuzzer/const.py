@@ -95,8 +95,10 @@ syscall_field_index = {
     "setsockopt": ["ret"],
     "prlimit64": ["ret", "rlim_cur", "rlim_max"],
     "getsockopt": ["ret", "optval", "optlen"],
-    "accept": ["ret", "addr", "addrlen"],
-    "accept4": ["ret", "addr", "addrlen"],
+    # "accept": ["ret", "addr", "addrlen"],
+    # "accept4": ["ret", "addr", "addrlen"],
+    "accept": ["ret", "addrlen"],
+    "accept4": ["ret", "addrlen"],
     "sendfile": ["ret", "offset"],
     "getcwd": ["ret"],
     "writev": ["ret"],
@@ -107,7 +109,8 @@ syscall_field_index = {
     "getppid": ["ret"],
     "dup": ["ret"],
     "nanosleep": ["ret", "tv_sec", "tv_nsec"],
-    "getsockname": ["ret", "addr", "addrlen"],
+    # "getsockname": ["ret", "addr", "addrlen"],
+    "getsockname": ["ret", "addrlen"],
     "pipe": ["ret", "pair"],
     "clock_gettime": ["ret", "tv_sec", "tv_nsec"],
     "select": ["ret", "readfds", "writefds", "exceptfds", "timeout"],
@@ -117,7 +120,8 @@ syscall_field_index = {
     "recvmsg": ["ret", "msg_controllen"],
     "getpgrp": ["ret"],
     "setresuid": ["ret"],
-    "getpeername": ["ret", "addr", "addrlen"],
+    # "getpeername": ["ret", "addr", "addrlen"],
+    "getpeername": ["ret", "addrlen"],
     "setresgid": ["ret"],
     "getgroups": ["ret"],
     "chdir": ["ret"],
@@ -138,7 +142,8 @@ syscall_field_index = {
     "sendmsg": ["ret"],
     "pipe2": ["ret", "pair"],
     "epoll_create1": ["ret"],
-    "recvfrom": ["ret", "addr", "addrlen"]
+    # "recvfrom": ["ret", "addr", "addrlen"]
+    "recvfrom": ["ret", "addrlen"]
 }
 
 
