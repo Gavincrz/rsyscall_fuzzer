@@ -15,7 +15,8 @@ def generate_value(operator, value):
 
 
 syscall_translate = {'open': 'openat', 'prlimit': 'prlimit64', 'pread': 'pread64',
-                     'pwrite': 'pwrite64', "epoll_create": "epoll_create1"}
+                     'pwrite': 'pwrite64', "epoll_create": "epoll_create1",
+                     "lstat64": "lstat", "fstat64": "fstat", "stat64": "stat"}
 
 
 def generate_json(path, ori_file):

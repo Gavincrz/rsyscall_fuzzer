@@ -938,11 +938,14 @@ class Fuzzer:
     def print_measuerment(self):
         end_time = time.time()
         total_time = end_time - self.start_time
-        log.warning(f"total runtime is {total_time},\n "
-                    f"totalnumber of it = {self.iteration_count}, \n"
-                    f"average time is {total_time / self.iteration_count}, \n"
-                    f"fuzzer functiontime = {self.run_fuzz_function_time}\n"
-                    f"average fuzzer function time = {self.run_fuzz_function_time / self.iteration_count}")
+        if self.iteration_count != 0:
+            log.warning(f"total runtime is {total_time},\n "
+                        f"totalnumber of it = {self.iteration_count}, \n"
+                        f"average time is {total_time / self.iteration_count}, \n"
+                        f"fuzzer functiontime = {self.run_fuzz_function_time}\n"
+                        f"average fuzzer function time = {self.run_fuzz_function_time / self.iteration_count}")
+        else:
+            log.error("no iteration")
         self.start_time = time.time()
         self.run_fuzz_function_time = 0
         self.iteration_count = 0
@@ -2103,7 +2106,9 @@ class Fuzzer:
                 fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
             else:
                 signal_received = False
+                client_retry = const.CLIENT_RETRY
                 if self.no_signal:
+                    client_retry = 100
                     signal_received = True
                 else:
                     # use polling instead of timeout
@@ -2152,11 +2157,13 @@ class Fuzzer:
                             self.kill_servers()
                     else:  # after polling, connect a client
                         log.debug("connecting client ...")
-                        for j in range(const.CLIENT_RETRY):
+                        retry_count = 0
+                        for j in range(client_retry):
                             client_ret = client()
                             if client_ret == 0:
                                 break
                             else:
+                                retry_count += 1
                                 retry_flag = True
                         log.debug(f"client ret code {client_ret}")
                         if client_ret != 0:
@@ -2213,4 +2220,8 @@ class Fuzzer:
         if not retry_flag:
             self.run_fuzz_function_time += (fuzzer_end_time-fuzzer_start_time)
             self.iteration_count += 1
+        else:
+            self.run_fuzz_function_time += (fuzzer_end_time - fuzzer_start_time)
+            self.iteration_count += 1
+            print(f"retry:{retry_count}", end=',')
         return fuzz_ret_code, retcode
