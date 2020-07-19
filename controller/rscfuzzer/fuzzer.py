@@ -2106,7 +2106,7 @@ class Fuzzer:
                 fuzz_ret_code = FuzzResult.FUZZ_EXITB4POLL
             else:
                 signal_received = False
-                client_retry = const.CLIENT_RETRY
+                client_retry = 1
                 if self.no_signal:
                     client_retry = 100
                     signal_received = True
@@ -2223,5 +2223,5 @@ class Fuzzer:
         else:
             self.run_fuzz_function_time += (fuzzer_end_time - fuzzer_start_time)
             self.iteration_count += 1
-            print(f"retry:{retry_count}", end=',')
+            # print(f"retry:{retry_count}", end=',')
         return fuzz_ret_code, retcode
