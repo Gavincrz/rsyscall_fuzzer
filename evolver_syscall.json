@@ -1,0 +1,308 @@
+{
+  "syscalls": [
+    {
+      "name": "read",
+      "ret_v": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "open",
+      "ret_v": []
+    },
+    {
+      "name": "openat",
+      "ret_v": []
+    },
+    {
+      "name": "write",
+      "ret_v": []
+    },
+    {
+      "name": "close",
+      "ret_v": []
+    },
+    {
+      "name": "stat",
+      "ret_v": [
+        0,
+        12580511
+      ],
+      "st_mode_v": [
+        0,
+        12580511
+      ]
+    },
+    {
+      "name": "fstat",
+      "ret_v": []
+    },
+    {
+      "name": "lstat",
+      "ret_v": []
+    },
+    {
+      "name": "getpid",
+      "ret_v": []
+    },
+    {
+      "name": "lseek",
+      "ret_v": []
+    },
+    {
+      "name": "epoll_wait",
+      "ret_v": []
+    },
+    {
+      "name": "dup2",
+      "ret_v": []
+    },
+    {
+      "name": "dup3",
+      "ret_v": []
+    },
+    {
+      "name": "bind",
+      "ret_v": []
+    },
+    {
+      "name": "epoll_create",
+      "ret_v": []
+    },
+    {
+      "name": "poll",
+      "ret_v": []
+    },
+    {
+      "name": "socket",
+      "ret_v": []
+    },
+    {
+      "name": "getdents",
+      "ret_v": []
+    },
+    {
+      "name": "getsockname",
+      "ret_v": []
+    },
+    {
+      "name": "getsockopt",
+      "ret_v": []
+    },
+    {
+      "name": "select",
+      "ret_v": [
+        0,
+        12580511
+      ]
+    },
+    {
+      "name": "recvfrom",
+      "ret_v": []
+    },
+    {
+      "name": "prlimit64",
+      "ret_v": []
+    },
+    {
+      "name": "setsockopt",
+      "ret_v": []
+    },
+    {
+      "name": "listen",
+      "ret_v": []
+    },
+    {
+      "name": "epoll_ctl",
+      "ret_v": []
+    },
+    {
+      "name": "setgroups",
+      "ret_v": []
+    },
+    {
+      "name": "getuid",
+      "ret_v": []
+    },
+    {
+      "name": "access",
+      "ret_v": []
+    },
+    {
+      "name": "getgid",
+      "ret_v": []
+    },
+    {
+      "name": "setuid",
+      "ret_v": []
+    },
+    {
+      "name": "setgid",
+      "ret_v": []
+    },
+    {
+      "name": "connect",
+      "ret_v": []
+    },
+    {
+      "name": "accept",
+      "ret_v": []
+    },
+    {
+      "name": "accept4",
+      "ret_v": []
+    },
+    {
+      "name": "sendfile",
+      "ret_v": []
+    },
+    {
+      "name": "getcwd",
+      "ret_v": []
+    },
+    {
+      "name": "writev",
+      "ret_v": []
+    },
+    {
+      "name": "setsid",
+      "ret_v": []
+    },
+    {
+      "name": "sendto",
+      "ret_v": []
+    },
+    {
+      "name": "chroot",
+      "ret_v": []
+    },
+    {
+      "name": "getppid",
+      "ret_v": []
+    },
+    {
+      "name": "dup",
+      "ret_v": []
+    },
+    {
+      "name": "nanosleep",
+      "ret_v": []
+    },
+    {
+      "name": "pipe",
+      "ret_v": []
+    },
+    {
+      "name": "clock_gettime",
+      "ret_v": []
+    },
+    {
+      "name": "geteuid",
+      "ret_v": []
+    },
+    {
+      "name": "getegid",
+      "ret_v": []
+    },
+    {
+      "name": "uname",
+      "ret_v": []
+    },
+    {
+      "name": "recvmsg",
+      "ret_v": []
+    },
+    {
+      "name": "getpgrp",
+      "ret_v": []
+    },
+    {
+      "name": "setresuid",
+      "ret_v": []
+    },
+    {
+      "name": "getpeername",
+      "ret_v": []
+    },
+    {
+      "name": "setresgid",
+      "ret_v": []
+    },
+    {
+      "name": "getgroups",
+      "ret_v": []
+    },
+    {
+      "name": "chdir",
+      "ret_v": [
+        0,
+        -1
+      ]
+    },
+    {
+      "name": "socketpair",
+      "ret_v": []
+    },
+    {
+      "name": "sysinfo",
+      "ret_v": []
+    },
+    {
+      "name": "readlink",
+      "ret_v": []
+    },
+    {
+      "name": "link",
+      "ret_v": []
+    },
+    {
+      "name": "chmod",
+      "ret_v": []
+    },
+    {
+      "name": "mkdir",
+      "ret_v": []
+    },
+    {
+      "name": "unlink",
+      "ret_v": []
+    },
+    {
+      "name": "rename",
+      "ret_v": []
+    },
+    {
+      "name": "pread64",
+      "ret_v": []
+    },
+    {
+      "name": "symlink",
+      "ret_v": []
+    },
+    {
+      "name": "statfs",
+      "ret_v": []
+    },
+    {
+      "name": "setitimer",
+      "ret_v": []
+    },
+    {
+      "name": "wait4",
+      "ret_v": []
+    },
+    {
+      "name": "sendmsg",
+      "ret_v": []
+    },
+    {
+      "name": "pipe2",
+      "ret_v": []
+    },
+    {
+      "name": "epoll_create1",
+      "ret_v": []
+    }
+  ]
+}
