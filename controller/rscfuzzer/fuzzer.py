@@ -735,6 +735,8 @@ class Fuzzer:
                 log.error(data)
                 continue
             hash = mmh3.hash64(data, signed=False)[0]
+            if '__GI_abort' in data:
+                continue
             if hash not in self.stack_set:
                 self.stack_set.add(hash)
                 log.info(f"new stack found:\n{data}")
@@ -1651,7 +1653,7 @@ class Fuzzer:
             else:
                 if self.retcode is None:  # set the normal retcode to retcode
                     self.retcode = retcode
-                    log.info(f"normal retcode set to {retcode} for the non-server target")
+                    log.warning(f"normal retcode set to {retcode} for the non-server target")
                 elif self.retcode != retcode:
                     self.kill_servers()
                     sys.exit(f"application terminate with error in vanilla run, "
